@@ -203,6 +203,7 @@ int parseBGP::handleUpEvent(u_char *data, size_t size, MsgBusInterface::obj_peer
 
         // Convert the list to string
         bzero(up_event->sent_cap, sizeof(up_event->sent_cap));
+        RedisManager redis = RedisManager::getInstance();
 
         string cap_str;
         for (list<string>::iterator it = cap_list.begin(); it != cap_list.end(); it++) {
@@ -214,6 +215,30 @@ int parseBGP::handleUpEvent(u_char *data, size_t size, MsgBusInterface::obj_peer
                 p_info->sent_four_octet_asn = true;
 
             cap_str.append((*it));
+            switch (*it) {
+                case BGP_CAP_GRACEFUL_RESTART:
+                {
+                    redis.WriteBGPNeighborTable(p_entry->peer_addr, "adv-support-graceful-restart", p_entry->peer_addr);
+                    break;
+                }
+                case BGP_CAP_FQDN:
+                {
+                    redis.WriteBGPNeighborTable(p_entry->peer_addr, "adv-support-fqdn", p_entry->peer_addr);
+                    break;
+                }
+                case BGP_CAP_LONG_LIVE_GRACEFUL_RESTART:
+                {
+                    redis.WriteBGPNeighborTable(p_entry->peer_addr, "adv-support-long-live-graceful-restart", p_entry->peer_addr);
+                    break;
+                }
+                case BGP_CAP_MPBGP:
+                {
+                    redis.WriteBGPNeighborTable(p_entry->peer_addr, "adv-supports-mpbgp", p_entry->peer_addr);
+                    break;
+                }
+                default:
+                    break;
+            }
         }
 
         strncpy(up_event->sent_cap, cap_str.c_str(), sizeof(up_event->sent_cap));

@@ -9,6 +9,7 @@
 #include "OpenMsg.h"
 #include "AddPathDataContainer.h"
 #include "BMPReader.h"
+#include "RedisManager.h"
 
 #include <string>
 #include <list>
@@ -154,6 +155,10 @@ size_t OpenMsg::parseCapabilities(u_char *data, size_t size, bool openMessageIsS
         param = (open_param *)bufPtr;
         SELF_DEBUG("%s: Open param type=%d len=%d", peer_addr.c_str(), param->type, param->len);
 
+        RedisManager redis = RedisManager::getInstance();
+        string nei = peer_addr;
+        redis.WriteBGPNeighborTable(nei, "peer-ip", peer_addr);
+
         if (param->type != BGP_CAP_PARAM_TYPE) {
             LOG_NOTICE("%s: Open param type %d is not supported, expected type %d", peer_addr.c_str(),
                         param->type, BGP_CAP_PARAM_TYPE);
@@ -187,18 +192,21 @@ size_t OpenMsg::parseCapabilities(u_char *data, size_t size, bool openMessageIsS
                     case BGP_CAP_ROUTE_REFRESH:
                         SELF_DEBUG("%s: supports route-refresh", peer_addr.c_str());
                         snprintf(capStr, sizeof(capStr), "Route Refresh (%d)", BGP_CAP_ROUTE_REFRESH);
+                        redis.WriteBGPNeighborTable(nei, "recv-route-refresh", "1");
                         capabilities.push_back(capStr);
                         break;
 
                     case BGP_CAP_ROUTE_REFRESH_ENHANCED:
                         SELF_DEBUG("%s: supports route-refresh enhanced", peer_addr.c_str());
                         snprintf(capStr, sizeof(capStr), "Route Refresh Enhanced (%d)", BGP_CAP_ROUTE_REFRESH_ENHANCED);
+                        redis.WriteBGPNeighborTable(nei, "recv-route-refresh-enhanced", "1");
                         capabilities.push_back(capStr);
                         break;
 
                     case BGP_CAP_ROUTE_REFRESH_OLD:
                         SELF_DEBUG("%s: supports OLD route-refresh", peer_addr.c_str());
                         snprintf(capStr, sizeof(capStr), "Route Refresh Old (%d)", BGP_CAP_ROUTE_REFRESH_OLD);
+                        redis.WriteBGPNeighborTable(nei, "recv-route-refresh-old", "1");
                         capabilities.push_back(capStr);
                         break;
 
@@ -263,18 +271,21 @@ size_t OpenMsg::parseCapabilities(u_char *data, size_t size, bool openMessageIsS
                     case BGP_CAP_GRACEFUL_RESTART:
                         SELF_DEBUG("%s: supports graceful restart", peer_addr.c_str());
                         snprintf(capStr, sizeof(capStr), "Graceful Restart (%d)", BGP_CAP_GRACEFUL_RESTART);
+                        redis.WriteBGPNeighborTable(nei, "recv-support-graceful-restart", "1");
                         capabilities.push_back(capStr);
                         break;
 
                     case BGP_CAP_OUTBOUND_FILTER:
                         SELF_DEBUG("%s: supports outbound filter", peer_addr.c_str());
                         snprintf(capStr, sizeof(capStr), "Outbound Filter (%d)", BGP_CAP_OUTBOUND_FILTER);
+                        redis.WriteBGPNeighborTable(nei, "recv-support-outbound-filter", "1");
                         capabilities.push_back(capStr);
                         break;
 
                     case BGP_CAP_MULTI_SESSION:
                         SELF_DEBUG("%s: supports multi-session", peer_addr.c_str());
                         snprintf(capStr, sizeof(capStr), "Multi-session (%d)", BGP_CAP_MULTI_SESSION);
+                        redis.WriteBGPNeighborTable(nei, "recv-support-multi-session", "1");
                         capabilities.push_back(capStr);
                         break;
 
@@ -290,7 +301,7 @@ size_t OpenMsg::parseCapabilities(u_char *data, size_t size, bool openMessageIsS
 
                             snprintf(capStr, sizeof(capStr), "MPBGP (%d) : afi=%d safi=%d",
                                      BGP_CAP_MPBGP, data.afi, data.safi);
-
+                            redis.WriteBGPNeighborTable(nei, "recv-support-mpbgp", "1");
                             ///Building capability string
 
                             std::string decodedStr(capStr);
@@ -308,6 +319,16 @@ size_t OpenMsg::parseCapabilities(u_char *data, size_t size, bool openMessageIsS
                             return 0;
                         }
 
+                        break;
+                    }
+                    case BGP_CAP_LONG_LIVE_GRACEFUL_RESTART:
+                    {
+                        redis.WriteBGPNeighborTable(nei, "recv-support-long-live-graceful-restart", "1");
+                        break;
+                    }
+                    case BGP_CAP_FQDN:
+                    {
+                        redis.WriteBGPNeighborTable(nei, "recv-support-fqdn", "1");
                         break;
                     }
 
