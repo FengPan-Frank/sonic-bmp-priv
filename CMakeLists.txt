@@ -33,6 +33,22 @@ find_library(LIBYAML_CPP_LIBRARY
         lib64
         lib)
 
+find_path(LIBHIREDIS_INCLUDE_DIR
+        hiredis/hiredis.h
+        HINTS
+        ${HINT_ROOT_DIR}
+        PATH_SUFFIXES
+        include)
+
+find_library(LIBHIREDIS_LIBRARY
+        NAMES
+        libhiredis.a hiredis
+        HINTS
+        ${HINT_ROOT_DIR}
+        PATH_SUFFIXES
+        lib64
+        lib)
+
 find_path(LIBRDKAFKA_INCLUDE_DIR
         librdkafka/rdkafkacpp.h
         HINTS
@@ -67,6 +83,12 @@ find_library(LIBRT_LIBRARY
         lib64
         lib)
 
+if (NOT LIBHIREDIS_INCLUDE_DIR OR NOT LIBHIREDIS_LIBRARY)
+	Message (FATAL_ERROR "Libhiredis was not found, cannot proceed.  Visit https://github.com/redis/hiredis for details on how to install it.")
+#else ()
+#	Message ("lib = " ${LIBHIREDIS_LIBRARY})
+endif()
+
 if (NOT LIBRDKAFKA_INCLUDE_DIR OR NOT LIBRDKAFKA_LIBRARY OR NOT LIBRDKAFKA_CPP_LIBRARY)
 	Message (FATAL_ERROR "Librdkafka was not found, cannot proceed.  Visit https://github.com/edenhill/librdkafka for details on how to install it.")
 #else ()
@@ -82,7 +104,7 @@ if (NOT LIBRT_LIBRARY AND NOT MACOSX)
 endif()
 
 # Update the include dir
-include_directories(${LIBRDKAFKA_INCLUDE_DIR} ${LIBYAML_CPP_INCLUDE_DIR} src/ src/bmp src/bgp src/bgp/linkstate src/kafka)
+include_directories(${LIBHIREDIS_INCLUDE_DIR} ${LIBRDKAFKA_INCLUDE_DIR} ${LIBYAML_CPP_INCLUDE_DIR} src/ src/bmp src/bgp src/bgp/linkstate src/kafka)
 #link_directories(${LIBRDKAFKA_LIBRARY})
 
 
@@ -134,7 +156,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 # Set the libs to link
-set (LIBS pthread ${LIBYAML_CPP_LIBRARY} ${LIBRDKAFKA_CPP_LIBRARY} ${LIBRDKAFKA_LIBRARY} z ${SSL_LIBS} dl)
+set (LIBS pthread ${LIBYAML_CPP_LIBRARY} ${LIBRDKAFKA_CPP_LIBRARY} ${LIBRDKAFKA_LIBRARY} ${LIBHIREDIS_LIBRARY} z ${SSL_LIBS} dl)
 
 # Set the binary
 add_executable (openbmpd ${SRC_FILES})
