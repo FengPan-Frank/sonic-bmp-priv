@@ -6,8 +6,6 @@ parameters:
   type: string
   values:
   - amd64
-  - armhf
-  - arm64
   default: amd64
 
 - name: pool
@@ -49,8 +47,13 @@ jobs:
   steps:
     - checkout: none
     - script: |
-        sudo apt-get install gcc g++ libboost-dev cmake zlib1g-dev libssl1.0.0 libsasl2-2 libssl-dev libsasl2-dev
-        git status
+        sudo apt-get update
+        sudo apt-get install libsasl2-dev
+        sudo apt-get install libcurl4-openssl-dev
+        sudo apt-get install libssl-dev
+        sudo apt-get install libssl1.0.0
+        sudo apt-get install gcc g++ libboost-dev cmake zlib1g-dev libsasl2-2
+
         git clone https://github.com/jbeder/yaml-cpp.git
         cd yaml-cpp
         mkdir build
@@ -59,15 +62,9 @@ jobs:
         make
         sudo make install
 
-        git clone https://github.com/edenhill/librdkafka.git
-        cd librdkafka
-        ./configure
-        make
-        sudo make install
-
         git clone https://github.com/redis/hiredis.git
         cd hiredis
-        make USE_SSL=1
+        make
         sudo make install
 
         git clone https://github.com/FengPan-Frank/sonic-bmp.git
