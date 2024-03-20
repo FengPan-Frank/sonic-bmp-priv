@@ -10,16 +10,16 @@ schedules:
     - master
 
 jobs:
-- job: cleanup
-  pool: sonicbld
+- job: build
   timeoutInMinutes: 240
-  container:
-      image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:latest
+  pool: sonicbld
 
-steps:
-  - checkout: none
-    clean: true
-  - bash: |
+  container:
+    image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:latest
+
+  steps:
+    - checkout: none
+    - bash: |
       set -ex
       git clone https://github.com/edenhill/librdkafka.git
       cd librdkafka
