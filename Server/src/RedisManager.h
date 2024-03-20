@@ -14,9 +14,8 @@
 #include <string>
 #include <list>
 #include <map>
+#include "Logger.h"
 
-
-using namespace boost::xpressive;
 
 /**
  * \class   RedisManager
@@ -168,30 +167,9 @@ private:
      */
     bool ConnectRedis();
 
-    /**
-     * Reset BGP_Neighbor* Table
-     *
-     * \param [in] N/A
-     */
-    bool ResetBGPNeighborTable();
-
-    /**
-     * Reset BGP_RIB_IN* Table
-     *
-     * \param [in] N/A
-     */
-    bool ResetBGPRibInTable();
-
-    /**
-     * Reset BGP_RIB_OUT* Table
-     *
-     * \param [in] N/A
-     */
-    bool ResetBGPRibOutTable();
-
 private:
     redisContext* redis_;
-    Logger *logger_;
+    Logger *logger;
     bool connected_;
     bool neiTableEnable_;
     bool ribInTableEnable_;

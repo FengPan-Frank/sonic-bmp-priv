@@ -13,16 +13,25 @@
 /*********************************************************************//**
  * Constructor for class
  ***********************************************************************/
-RedisManager() : redis_(nullptr), connected_(false) {
+RedisManager::RedisManager() : redis_(nullptr), connected_(false) {
     neiTableEnable_ = true;
     ribInTableEnable_ = true;
     ribOutTableEnable_ = true;
 }
 
 /*********************************************************************//**
+ * Constructor for class
+ ***********************************************************************/
+RedisManager::~RedisManager() {
+    if (redis_ != nullptr) {
+        redisFree(redis_);
+    }
+}
+
+/*********************************************************************//**
  * Get singleton instance for class
  ***********************************************************************/
-static RedisManager& RedisManager::getInstance(); {
+RedisManager& RedisManager::getInstance() {
     static RedisManager instance;
     return instance;
 }
@@ -33,18 +42,9 @@ static RedisManager& RedisManager::getInstance(); {
  * \param [in] logPtr     logger pointer
  ***********************************************************************/
 void RedisManager::Setup(Logger *logPtr) {
-    logger_ = logPtr;
+    logger = logPtr;
 }
 
-
-/**
- * Reset all Tables once FRR reconnects to BMP, this will not disable table population
- *
- * \param [in] N/A
- */
-bool RedisManager::ResetAllTables() {
-
-}
 
 
 /**
@@ -60,7 +60,7 @@ bool RedisManager::ConnectRedis() {
 
     redisContext* redis = redisConnect("127.0.0.1", 6379);
     if (redis == NULL || redis->err) {
-        sELF_INFO("RedisManager failed to connect to Redis %s", redis->errstr);
+        SELF_INFO("RedisManager failed to connect to Redis %s", redis->errstr);
             return false;
     }
 
@@ -88,8 +88,10 @@ bool RedisManager::WriteBGPNeighborTable(const std::string& neighbor, const std:
         }
     }
 
-    string key = BMP_TABLE_NEI + ":" + neighbor;
-    SELF_DEBUG("RedisManager WriteBGPNeighborTable neighbor = %s: field = %s: value = %s", neighbor.c_str(), field.c_str(), value.c_str());
+    std::string key = BMP_TABLE_NEI;
+    key += ":";
+    key += neighbor;
+    SELF_INFO("RedisManager WriteBGPNeighborTable neighbor = %s: field = %s: value = %s", neighbor.c_str(), field.c_str(), value.c_str());
         
     redisReply* reply = (redisReply*)redisCommand(redis_, "HSET %s %s %s", key.c_str(), field.c_str(), value.c_str());
     if (reply == NULL) {
@@ -126,8 +128,13 @@ bool RedisManager::WriteBGPRibInTable(const std::string& neighbor, const std::st
         }
     }
 
-    string key = BMP_TABLE_RIB_IN + ":" + nlri + BMP_TABLE_NEI_PREFIX + ":" + neighbor;
-    SELF_DEBUG("RedisManager WriteBGPRibInTable neighbor = %s: field = %s: value = %s", neighbor.c_str(), field.c_str(), value.c_str());
+    std::string key = BMP_TABLE_RIB_IN;
+    key += ":";
+    key += nlri;
+    key += BMP_TABLE_NEI_PREFIX;
+    key += ":";
+    key += neighbor;
+    SELF_INFO("RedisManager WriteBGPRibInTable neighbor = %s: field = %s: value = %s", neighbor.c_str(), field.c_str(), value.c_str());
 
     redisReply* reply = (redisReply*)redisCommand(redis_, "HSET %s %s %s", key.c_str(), field.c_str(), value.c_str());
     if (reply == NULL) {
@@ -165,8 +172,13 @@ bool RedisManager::WriteBGPRibOutTable(const std::string& neighbor, const std::s
         }
     }
 
-    string key = BMP_TABLE_RIB_OUT + ":" + nlri + BMP_TABLE_NEI_PREFIX + ":" + neighbor;
-    SELF_DEBUG("RedisManager WriteBGPRibOutTable neighbor = %s: field = %s: value = %s", neighbor.c_str(), field.c_str(), value.c_str());
+    std::string key = BMP_TABLE_RIB_OUT;
+    key += ":";
+    key += nlri;
+    key += BMP_TABLE_NEI_PREFIX;
+    key += ":";
+    key += neighbor;
+    SELF_INFO("RedisManager WriteBGPRibOutTable neighbor = %s: field = %s: value = %s", neighbor.c_str(), field.c_str(), value.c_str());
 
     redisReply* reply = (redisReply*)redisCommand(redis_, "HSET %s %s %s", key.c_str(), field.c_str(), value.c_str());
     if (reply == NULL) {

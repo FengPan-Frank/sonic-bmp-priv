@@ -19,6 +19,7 @@
  */
 #define DEBUG(...) logger->DebugPrint(__FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
 #define SELF_DEBUG(...) if (debug) logger->DebugPrint(__FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
+#define SELF_INFO(...) logger->Print("INFO",   __FUNCTION__, __VA_ARGS__)
 
 /*
  * Below defines LOG macros for various severities
