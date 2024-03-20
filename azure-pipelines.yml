@@ -1,0 +1,52 @@
+pr: none
+trigger: none
+
+schedules:
+- cron: "0 0 * * *"
+  displayName: Daily
+  always: true
+  branches:
+    include:
+    - master
+
+
+resources:
+  repositories:
+  - repository: buildimage
+    type: github
+    name: Azure/sonic-buildimage-msft
+    endpoint: build
+
+jobs:
+- job: cleanup
+  pool: sonicbld
+  timeoutInMinutes: 240
+  variables:
+
+steps:
+  - checkout: none
+    clean: true
+  - bash: |
+      set -ex
+      git clone https://github.com/edenhill/librdkafka.git
+      cd librdkafka
+      ./configure
+      make
+      sudo make install
+
+      git clone https://github.com/jbeder/yaml-cpp.git
+      cd yaml-cpp
+      mkdir build
+      cd build
+      cmake -DBUILD_SHARED_LIBS=OFF ..
+      make
+      sudo make install
+
+      sudo apt-get install gcc g++ libboost-dev cmake zlib1g-dev libssl1.0.0 libsasl2-2 libssl-dev libsasl2-dev 
+
+      git clone https://github.com/FengPan-Frank/sonic-bmp.git
+      cd sonic-bmp
+      mkdir build
+      cd build
+      cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../  
+      make
