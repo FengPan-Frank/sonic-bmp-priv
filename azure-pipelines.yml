@@ -9,19 +9,12 @@ schedules:
     include:
     - master
 
-
-resources:
-  repositories:
-  - repository: buildimage
-    type: github
-    name: Azure/sonic-buildimage-msft
-    endpoint: build
-
 jobs:
 - job: cleanup
   pool: sonicbld
   timeoutInMinutes: 240
-  variables:
+  container:
+      image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:latest
 
 steps:
   - checkout: none
