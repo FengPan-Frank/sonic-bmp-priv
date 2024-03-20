@@ -90,6 +90,7 @@ set (SRC_FILES
 	src/md5.cpp
 	src/Logger.cpp
     src/Config.cpp
+    src/RedisManager.cpp
 	src/client_thread.cpp
 	src/bgp/parseBGP.cpp
 	src/bgp/NotificationMsg.cpp
