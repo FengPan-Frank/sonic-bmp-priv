@@ -24,6 +24,13 @@ parameters:
   type: string
   default: sonic-slave-bullseye
 
+variables:
+  - name: BUILD_BRANCH
+    ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
+      value: $(System.PullRequest.TargetBranch)
+    ${{ else }}:
+      value: $(Build.SourceBranchName)
+
 schedules:
 - cron: "0 0 * * *"
   displayName: Daily
@@ -68,6 +75,7 @@ jobs:
 
         git clone https://github.com/FengPan-Frank/sonic-bmp.git
         cd sonic-bmp
+        git checkout $(BUILD_BRANCH)
         mkdir build
         cd build
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../  
