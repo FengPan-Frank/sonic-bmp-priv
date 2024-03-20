@@ -55,11 +55,6 @@ void ClientThread_cancel(void *arg) {
             delete cInfo->bmp_reader_thread;
             cInfo->bmp_reader_thread = NULL;
         }
-
-        if (cInfo->mbus != NULL) {
-            delete cInfo->mbus;
-            cInfo->mbus = NULL;
-        }
     }
 }
 
@@ -78,7 +73,7 @@ void *ClientThread(void *arg) {
 
     // Setup the client thread info struct
     ClientThreadInfo cInfo;
-    cInfo.mbus = NULL;
+
     cInfo.client = &thr->client;
     cInfo.log = thr->log;
     cInfo.closing = false;
@@ -94,12 +89,6 @@ void *ClientThread(void *arg) {
     pthread_cleanup_push(ClientThread_cancel, &cInfo);
 
     try {
-        // connect to message bus
-        cInfo.mbus = new msgBus_kafka(logger, thr->cfg, thr->cfg->c_hash_id);
-
-        if (thr->cfg->debug_msgbus)
-            cInfo.mbus->enableDebug();
-
         BMPReader rBMP(logger, thr->cfg);
         LOG_INFO("Thread started to monitor BMP from router %s using socket %d buffer in bytes = %u",
                 cInfo.client->c_ip, cInfo.client->c_sock, thr->cfg->bmp_buffer_size);
@@ -114,8 +103,8 @@ void *ClientThread(void *arg) {
          */
         bool bmp_run = true;
         //cInfo.bmp_reader_thread = new std::thread([&] {rBMP.readerThreadLoop(bmp_run,cInfo.client,
-        cInfo.bmp_reader_thread = new std::thread(&BMPReader::readerThreadLoop, &rBMP, std::ref(bmp_run), cInfo.client,
-                                                                             (MsgBusInterface *)cInfo.mbus );
+        cInfo.bmp_reader_thread = new std::thread(&BMPReader::readerThreadLoop, &rBMP, std::ref(bmp_run), cInfo.client
+                                                                              );
 
         // Variables to handle circular buffer
         sock_buf = new unsigned char[thr->cfg->bmp_buffer_size];
@@ -276,10 +265,6 @@ void *ClientThread(void *arg) {
         }
 
 
-        if (cInfo.mbus != NULL) {
-            delete cInfo.mbus;
-            cInfo.mbus = NULL;
-        }
     }
 
     // Exit the thread

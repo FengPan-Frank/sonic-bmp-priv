@@ -49,30 +49,6 @@ find_library(LIBHIREDIS_LIBRARY
         lib64
         lib)
 
-find_path(LIBRDKAFKA_INCLUDE_DIR
-        librdkafka/rdkafkacpp.h
-        HINTS
-        ${HINT_ROOT_DIR}
-        PATH_SUFFIXES
-        include)
-
-find_library(LIBRDKAFKA_LIBRARY
-        NAMES
-        librdkafka.a rdkafka
-        HINTS
-        ${HINT_ROOT_DIR}
-        PATH_SUFFIXES
-        lib64
-        lib)
-
-find_library(LIBRDKAFKA_CPP_LIBRARY
-        NAMES
-        librdkafka++.a rdkafka++
-        HINTS
-        ${HINT_ROOT_DIR}
-        PATH_SUFFIXES
-        lib64
-        lib)
 
 find_library(LIBRT_LIBRARY
         NAMES
@@ -89,11 +65,6 @@ if (NOT LIBHIREDIS_INCLUDE_DIR OR NOT LIBHIREDIS_LIBRARY)
 #	Message ("lib = " ${LIBHIREDIS_LIBRARY})
 endif()
 
-if (NOT LIBRDKAFKA_INCLUDE_DIR OR NOT LIBRDKAFKA_LIBRARY OR NOT LIBRDKAFKA_CPP_LIBRARY)
-	Message (FATAL_ERROR "Librdkafka was not found, cannot proceed.  Visit https://github.com/edenhill/librdkafka for details on how to install it.")
-#else ()
-#	Message ("lib = " ${LIBRDKAFKA_LIBRARY})
-endif()
 
 if (NOT LIBYAML_CPP_INCLUDE_DIR OR NOT LIBYAML_CPP_LIBRARY)
     Message (FATAL_ERROR "Libyaml-cpp was not found, cannot proceed.  Visit https://github.com/jbeder/yaml-cpp for install details.")
@@ -104,19 +75,13 @@ if (NOT LIBRT_LIBRARY AND NOT MACOSX)
 endif()
 
 # Update the include dir
-include_directories(${LIBHIREDIS_INCLUDE_DIR} ${LIBRDKAFKA_INCLUDE_DIR} ${LIBYAML_CPP_INCLUDE_DIR} src/ src/bmp src/bgp src/bgp/linkstate src/kafka)
-#link_directories(${LIBRDKAFKA_LIBRARY})
+include_directories(${LIBHIREDIS_INCLUDE_DIR} ${LIBYAML_CPP_INCLUDE_DIR} src/ src/bmp src/bgp src/bgp/linkstate )
 
 
 # Define the source files to compile
 set (SRC_FILES
 	src/bmp/BMPListener.cpp
 	src/bmp/BMPReader.cpp
-	src/kafka/MsgBusImpl_kafka.cpp
-	src/kafka/KafkaEventCallback.cpp
-	src/kafka/KafkaDeliveryReportCallback.cpp
-    src/kafka/KafkaTopicSelector.cpp
-    src/kafka/KafkaPeerPartitionerCallback.cpp
 	src/openbmp.cpp
 	src/bmp/parseBMP.cpp
 	src/md5.cpp
@@ -156,7 +121,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 # Set the libs to link
-set (LIBS pthread ${LIBYAML_CPP_LIBRARY} ${LIBRDKAFKA_CPP_LIBRARY} ${LIBRDKAFKA_LIBRARY} ${LIBHIREDIS_LIBRARY} z ${SSL_LIBS} dl)
+set (LIBS pthread ${LIBYAML_CPP_LIBRARY} ${LIBHIREDIS_LIBRARY} z ${SSL_LIBS} dl)
 
 # Set the binary
 add_executable (openbmpd ${SRC_FILES})

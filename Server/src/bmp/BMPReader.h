@@ -64,7 +64,7 @@ public:
      * \param [in]  mbus_ptr     The database pointer referencer - DB should be already initialized
      * \return true if more to read, false if the connection is done/closed
      */
-    bool ReadIncomingMsg(BMPListener::ClientInfo *client, MsgBusInterface *mbus_ptr);
+    bool ReadIncomingMsg(BMPListener::ClientInfo *client);
 
     /**
      * Checks if End-of-RIB is reached for all peers by checking the rate of RIB dumps
@@ -86,7 +86,7 @@ public:
      *
      * \throw (char const *str) message indicate error
      */
-    void readerThreadLoop(bool &run, BMPListener::ClientInfo *client, MsgBusInterface *mbus_ptr);
+    void readerThreadLoop(bool &run, BMPListener::ClientInfo *client);
 
     /**
      * disconnect/close bmp stream
