@@ -28,7 +28,7 @@ namespace bgp_msg {
  */
 class OpenMsg {
 public:
-   /**
+    /**
      * Defines the BGP capabilities
      *      http://www.iana.org/assignments/capability-codes/capability-codes.xhtml
      */

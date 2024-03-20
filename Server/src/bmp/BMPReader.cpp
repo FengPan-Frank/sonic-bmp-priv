@@ -69,11 +69,11 @@ BMPReader::~BMPReader() {
  *
  * \throw (char const *str) message indicate error
  */
-void BMPReader::readerThreadLoop(bool &run, BMPListener::ClientInfo *client) {
+void BMPReader::readerThreadLoop(bool &run, BMPListener::ClientInfo *client, MsgBusInterface *mbus_ptr) {
     while (run) {
 
         try {
-            if (not ReadIncomingMsg(client))
+            if (not ReadIncomingMsg(client, mbus_ptr))
                 break;
 
         } catch (char const *str) {
@@ -95,7 +95,7 @@ void BMPReader::readerThreadLoop(bool &run, BMPListener::ClientInfo *client) {
  *
  * \throw (char const *str) message indicate error
  */
-bool BMPReader::ReadIncomingMsg(BMPListener::ClientInfo *client) {
+bool BMPReader::ReadIncomingMsg(BMPListener::ClientInfo *client, MsgBusInterface *mbus_ptr) {
     bool rval = true;
     string peer_info_key;
 
@@ -127,6 +127,14 @@ bool BMPReader::ReadIncomingMsg(BMPListener::ClientInfo *client) {
     try {
         bmp_type = pBMP->handleMessage(read_fd);
 
+        /*
+         * Now that we have parsed the BMP message...
+         *  add record to the database
+         */
+
+        if (bmp_type != parseBMP::TYPE_INIT_MSG)
+            mbus_ptr->update_Router(r_object, mbus_ptr->ROUTER_ACTION_FIRST);              // add the router entry
+
         // only process the peering info if the message includes it
         if (bmp_type < 4) {
             // Update p_entry hash_id now that add_Router updated it.
@@ -134,7 +142,8 @@ bool BMPReader::ReadIncomingMsg(BMPListener::ClientInfo *client) {
             peer_info_key =  p_entry.peer_addr;
             peer_info_key += p_entry.peer_rd;
 
-
+            if (bmp_type != parseBMP::TYPE_PEER_UP)
+                mbus_ptr->update_Peer(p_entry, NULL, NULL, mbus_ptr->PEER_ACTION_FIRST);     // add the peer entry
 
             if (not peer_info_map[peer_info_key].using_2_octet_asn and p_entry.isTwoOctet) {
                 peer_info_map[peer_info_key].using_2_octet_asn = true;
@@ -155,7 +164,7 @@ bool BMPReader::ReadIncomingMsg(BMPListener::ClientInfo *client) {
 
 
                     // Prepare the BGP parser
-                    pBGP = new parseBGP(logger, NULL, &p_entry, (char *)r_object.ip_addr,
+                    pBGP = new parseBGP(logger, mbus_ptr, &p_entry, (char *)r_object.ip_addr,
                                         &peer_info_map[peer_info_key]);
 
                     if (cfg->debug_bgp)
@@ -194,6 +203,8 @@ bool BMPReader::ReadIncomingMsg(BMPListener::ClientInfo *client) {
 
                     delete pBGP;            // Free the bgp parser after each use.
 
+                    // Add event to the database
+                    mbus_ptr->update_Peer(p_entry, NULL, &down_event, mbus_ptr->PEER_ACTION_DOWN);
 
                 } else {
                     LOG_ERR("Error with client socket %d", read_fd);
@@ -214,7 +225,7 @@ bool BMPReader::ReadIncomingMsg(BMPListener::ClientInfo *client) {
                     pBMP->bufferBMPMessage(read_fd);
 
                     // Prepare the BGP parser
-                    pBGP = new parseBGP(logger, NULL, &p_entry, (char *)r_object.ip_addr,
+                    pBGP = new parseBGP(logger, mbus_ptr, &p_entry, (char *)r_object.ip_addr,
                                         &peer_info_map[peer_info_key]);
 
                     if (cfg->debug_bgp)
@@ -232,6 +243,8 @@ bool BMPReader::ReadIncomingMsg(BMPListener::ClientInfo *client) {
                         pBMP->parsePeerUpInfo(pBMP->bmp_data + read, (int)pBMP->bmp_data_len - read);
                     }
 
+                    // Add the up event to the DB
+                    mbus_ptr->update_Peer(p_entry, &up_event, NULL, mbus_ptr->PEER_ACTION_UP);
 
                 } else {
                     LOG_NOTICE("%s: PEER UP Received but failed to parse the BMP header.", client->c_ip);
@@ -246,7 +259,7 @@ bool BMPReader::ReadIncomingMsg(BMPListener::ClientInfo *client) {
                  * Read and parse the the BGP message from the client.
                  *     parseBGP will update mysql directly
                  */
-                pBGP = new parseBGP(logger, NULL, &p_entry, (char *)r_object.ip_addr,
+                pBGP = new parseBGP(logger, mbus_ptr, &p_entry, (char *)r_object.ip_addr,
                                     &peer_info_map[peer_info_key]);
 
                 if (cfg->debug_bgp)
@@ -262,7 +275,7 @@ bool BMPReader::ReadIncomingMsg(BMPListener::ClientInfo *client) {
 		    while (it != peer_info_map.end() && it->second.endOfRIB)
 		        ++it;
 
-		    if (it == peer_info_map.end() || checkRIBdumpRate(p_entry.timestamp_secs,1)) {  //End-Of-RIBs are received for all peers.
+		    if (it == peer_info_map.end() || checkRIBdumpRate(p_entry.timestamp_secs,mbus_ptr->ribSeq)) {  //End-Of-RIBs are received for all peers.
 		        timeval now;
 		        gettimeofday(&now, NULL);
 		        cfg->router_baseline_time[str] = 1.2 * (now.tv_sec - client->startTime.tv_sec);  //20% buffer for baseline time 
@@ -274,6 +287,11 @@ bool BMPReader::ReadIncomingMsg(BMPListener::ClientInfo *client) {
             }
 
             case parseBMP::TYPE_STATS_REPORT : { // Stats Report
+                MsgBusInterface::obj_stats_report stats = {};
+                if (! pBMP->handleStatsReport(read_fd, stats))
+                    // Add to mysql
+                    mbus_ptr->add_StatReport(p_entry, stats);
+
                 break;
             }
 
@@ -286,6 +304,7 @@ bool BMPReader::ReadIncomingMsg(BMPListener::ClientInfo *client) {
 			hashRouter(client, r_object);
                 LOG_INFO("Router ID hashed with hash_type: %d", r_object.hash_type);
 		// Update the router entry with the details
+                mbus_ptr->update_Router(r_object, mbus_ptr->ROUTER_ACTION_INIT);
 
 		break;
             }
@@ -297,6 +316,7 @@ bool BMPReader::ReadIncomingMsg(BMPListener::ClientInfo *client) {
                 pBMP->handleTermMsg(read_fd, r_object);
 
                 LOG_INFO("Proceeding to disconnect router");
+                mbus_ptr->update_Router(r_object, mbus_ptr->ROUTER_ACTION_TERM);
                 close(client->c_sock);
 
                 rval = false;                           // Indicate connection is closed
@@ -307,12 +327,15 @@ bool BMPReader::ReadIncomingMsg(BMPListener::ClientInfo *client) {
     } catch (char const *str) {
         // Mark the router as disconnected and update the error to be a local disconnect (no term message received)
         LOG_INFO("%s: Caught: %s", client->c_ip, str);
-        disconnect(client, NULL, parseBMP::TERM_REASON_OPENBMP_CONN_ERR, str);
+        disconnect(client, mbus_ptr, parseBMP::TERM_REASON_OPENBMP_CONN_ERR, str);
 
         delete pBMP;                    // Make sure to free the resource
         throw str;
     }
     
+    // Send BMP RAW packet data
+    mbus_ptr->send_bmp_raw(router_hash_id, p_entry, pBMP->bmp_packet, pBMP->bmp_packet_len);
+
     // Free the bmp parser
     delete pBMP;
 
@@ -369,6 +392,7 @@ void BMPReader::disconnect(BMPListener::ClientInfo *client, MsgBusInterface *mbu
     if (reason_text != NULL)
         snprintf(r_object.term_reason_text, sizeof(r_object.term_reason_text), "%s", reason_text);
 
+    mbus_ptr->update_Router(r_object, mbus_ptr->ROUTER_ACTION_TERM);
 
     close(client->c_sock);
     client->c_sock = 0;

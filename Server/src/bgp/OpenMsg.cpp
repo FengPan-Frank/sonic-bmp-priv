@@ -9,6 +9,7 @@
 #include "OpenMsg.h"
 #include "AddPathDataContainer.h"
 #include "BMPReader.h"
+#include "RedisManager.h"
 
 #include <string>
 #include <list>

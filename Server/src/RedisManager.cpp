@@ -13,355 +13,224 @@
 /*********************************************************************//**
  * Constructor for class
  ***********************************************************************/
-RedisManager::RedisManager() : redis_(nullptr), connected_(false) {
-    neiTableEnable_ = true;
-    ribInTableEnable_ = true;
-    ribOutTableEnable_ = true;
+RedisManager::RedisManager() : stateDb_(BMP_DB_NAME, 0, true) {
+    swss::SonicDBConfig::initialize();
+    swss::SonicDBConfig::initializeGlobalConfig();
+    separator_ = swss::SonicDBConfig::getSeparator(BMP_DB_NAME);
+    exit_ = false;
 }
 
 /*********************************************************************//**
  * Constructor for class
  ***********************************************************************/
 RedisManager::~RedisManager() {
-    if (redis_ != nullptr) {
-        redisFree(redis_);
+    if (!exit_) {
+        exit_ = true;
+        for (auto& threadPtr : threadList_) {
+            threadPtr->join();
+        }
     }
 }
 
-/*********************************************************************//**
- * Get singleton instance for class
- ***********************************************************************/
-RedisManager& RedisManager::getInstance() {
-    static RedisManager instance;
-    return instance;
-}
 
 /*********************************************************************
  * Setup logger for this class
  *
  * \param [in] logPtr     logger pointer
  ***********************************************************************/
-void RedisManager::Setup(Logger *logPtr) {
+void RedisManager::Setup(Logger *logPtr, BMPListener::ClientInfo *client) {
     logger = logPtr;
+    client_ = client;
 }
 
 
 
 /**
- * Connect to redis and maintain the context
+ * Get Key separator for deletion
  *
  * \param [in] N/A
  */
-bool RedisManager::ConnectRedis() {
-    if (connected_)
-        return true;
-
-    SELF_INFO("RedisManager Connect Redis host = 127.0.0.1, port = 6379");
-
-    redisContext* redis = redisConnect("127.0.0.1", 6379);
-    if (redis == NULL || redis->err) {
-        SELF_INFO("RedisManager failed to connect to Redis %s", redis->errstr);
-            return false;
-    }
-
-    redis_ = redis;
-    connected_ = true; 
-    return true;
+std::string RedisManager::GetKeySeparator() {
+    return separator_;
 }
 
+
 /**
- * WriteBGPNeighborTable
+ * WriteBMPTable
  *
- * \param [in] neighbor  Reference to neighbor address
- * \param [in] field     Reference to the specific field name
- * \param [in] value     Reference to the value to be set
+ * \param [in] table            Reference to table name
+ * \param [in] key              Reference to various keys list
+ * \param [in] fieldValues      Reference to field-value pairs
  */
-bool RedisManager::WriteBGPNeighborTable(const std::string& neighbor, const std::string& field, const std::string& value) {
-    if (!neiTableEnable_) {
-        SELF_INFO("RedisManager BGPNeighborTable is disabled");
+bool RedisManager::WriteBMPTable(const std::string& table, const std::vector<std::string>& keys, const std::vector<swss::FieldValueTuple> fieldValues) {
+
+    if (enabledTables_.find(table) == enabledTables_.end()) {
+        LOG_INFO("RedisManager %s is disabled", table.c_str());
         return false;
     }
 
-    if (!connected_) {
-        if (!ConnectRedis()) {
-            return false;
-        }
+    swss::Table stateBMPTable(&stateDb_, table);
+    std::string fullKey;
+    for (const auto& key : keys) {
+        fullKey += key;
+        fullKey += separator_;
     }
+    fullKey.erase(fullKey.size() - 1);
 
-    std::string key = BMP_TABLE_NEI;
-    key += ":";
-    key += neighbor;
-    SELF_INFO("RedisManager WriteBGPNeighborTable neighbor = %s: field = %s: value = %s", neighbor.c_str(), field.c_str(), value.c_str());
-        
-    redisReply* reply = (redisReply*)redisCommand(redis_, "HSET %s %s %s", key.c_str(), field.c_str(), value.c_str());
-    if (reply == NULL) {
-        SELF_INFO("RedisManager WriteBGPNeighborTable executing HSET command failed: %s", redis_->errstr);
-        return false;
-    }
+    LOG_INFO("RedisManager WriteBMPTable key = %s", fullKey.c_str());
 
-    if (reply->type == REDIS_REPLY_ERROR) {
-        SELF_INFO("RedisManager WriteBGPNeighborTable HSET command reply: %s", reply->str);
-        freeReplyObject(reply);
-        return false;
-    }
-
-    freeReplyObject(reply);
+    stateBMPTable.set(fullKey, fieldValues);
     return true;
 }
 
+
 /**
- * WriteBGPInRibTable
+ * RemoveBMPTable
  *
- * \param [in] neighbor  Reference to neighbor address
- * \param [in] nlri      Reference to nlri
- * \param [in] field     Reference to the specific field name
- * \param [in] value     Reference to the value to be set
+ * \param [in] keys             Reference to various keys
  */
-bool RedisManager::WriteBGPRibInTable(const std::string& neighbor, const std::string& nlri, const std::string& field, const std::string& value) {
-    if (!ribInTableEnable_) {
-        SELF_INFO("RedisManager BGPRibInTable is disabled");
-        return false;
-    }
-    if (!connected_) {
-        if (!ConnectRedis()) {
-            return false;
-        }
-    }
+bool RedisManager::RemoveBMPTable(const std::vector<std::string>& keys) {
 
-    std::string key = BMP_TABLE_RIB_IN;
-    key += ":";
-    key += nlri;
-    key += BMP_TABLE_NEI_PREFIX;
-    key += ":";
-    key += neighbor;
-    SELF_INFO("RedisManager WriteBGPRibInTable neighbor = %s: field = %s: value = %s", neighbor.c_str(), field.c_str(), value.c_str());
-
-    redisReply* reply = (redisReply*)redisCommand(redis_, "HSET %s %s %s", key.c_str(), field.c_str(), value.c_str());
-    if (reply == NULL) {
-        SELF_INFO("RedisManager WriteBGPRibInTable executing HSET command failed: %s", redis_->errstr);
-        return false;
-    }
-
-    if (reply->type == REDIS_REPLY_ERROR) {
-        SELF_INFO("RedisManager WriteBGPRibInTable HSET command reply: %s", reply->str);
-        freeReplyObject(reply);
-        return false;
-    }
-
-    freeReplyObject(reply);
-    return true;
-}
-
-
-/**
- * WriteBGPOutRibTable
- *
- * \param [in] neighbor  Reference to neighbor address
- * \param [in] nlri      Reference to nlri
- * \param [in] field     Reference to the specific field name
- * \param [in] value     Reference to the value to be set
- */
-bool RedisManager::WriteBGPRibOutTable(const std::string& neighbor, const std::string& nlri, const std::string& field, const std::string& value) {
-    if (!ribOutTableEnable_) {
-        SELF_INFO("RedisManager BGPRibOutTable is disabled");
-        return false;
-    }
-    if (!connected_) {
-        if (!ConnectRedis()) {
-            return false;
-        }
-    }
-
-    std::string key = BMP_TABLE_RIB_OUT;
-    key += ":";
-    key += nlri;
-    key += BMP_TABLE_NEI_PREFIX;
-    key += ":";
-    key += neighbor;
-    SELF_INFO("RedisManager WriteBGPRibOutTable neighbor = %s: field = %s: value = %s", neighbor.c_str(), field.c_str(), value.c_str());
-
-    redisReply* reply = (redisReply*)redisCommand(redis_, "HSET %s %s %s", key.c_str(), field.c_str(), value.c_str());
-    if (reply == NULL) {
-        SELF_INFO("RedisManager WriteBGPRibOutTable executing HSET command failed: %s", redis_->errstr);
-        return false;
-    }
-
-    if (reply->type == REDIS_REPLY_ERROR) {
-        SELF_INFO("RedisManager WriteBGPRibOutTable HSET command reply: %s", reply->str);
-        freeReplyObject(reply);
-        return false;
-    }
-
-    freeReplyObject(reply);
+    stateDb_.del(keys);
     return true;
 }
 
 /**
- * Enable BGP_Neighbor* Table, this will work with reset
+ * DisconnectBMP
  *
  * \param [in] N/A
  */
-bool RedisManager::EnableBGPNeighborTable() {
-    neiTableEnable_ = true;
-    return true;
+void RedisManager::DisconnectBMP() {
+    LOG_INFO("RedisManager DisconnectBMP");
+    close(client_->c_sock);
+    client_->c_sock = 0;
 }
 
 /**
- * Disable BGP_Neighbor* Table, this will work with reset
+ * ExitRedisManager
  *
  * \param [in] N/A
  */
-bool RedisManager::DisableBGPNeighborTable() {
-    neiTableEnable_ = false;
-    return ResetBGPNeighborTable();
+void RedisManager::ExitRedisManager() {
+    exit_ = true;
+    for (auto& threadPtr : threadList_) {
+        threadPtr->join();
+    }
 }
 
-
 /**
- * Reset BGP_Neighbor* Table, this will flush redis
+ * ReadBMPTable, there will be dedicated thread be launched inside and monitor corresponding redis table.
  *
- * \param [in] N/A
+ * \param [in] tables             table names to be subscribed.
  */
-bool RedisManager::ResetBGPNeighborTable() {
-    SELF_INFO("RedisManager ResetBGPNeighborTable");
-    if (!connected_) {
-        if (!ConnectRedis()) {
-            return false;
+void RedisManager::SubscriberWorker(const std::string& table) {
+    try {
+        swss::DBConnector cfgDb("CONFIG_DB", 0, true);
+
+        swss::SubscriberStateTable conf_table(&cfgDb, table);
+        swss::Select s;
+        s.addSelectable(&conf_table);
+
+        while (!exit_) {
+            swss::Selectable *sel;
+            int ret;
+
+            ret = s.select(&sel, BMP_CFG_TABLE_SELECT_TIMEOUT);
+            if (ret == swss::Select::ERROR) {
+                SWSS_LOG_NOTICE("Error: %s!", strerror(errno));
+                continue;
+            }
+            if (ret == swss::Select::TIMEOUT) {
+                continue;
+            }
+
+            swss::KeyOpFieldsValuesTuple kco;
+            conf_table.pop(kco);
+
+            if (std::get<0>(kco) == "SET") {
+                if (std::get<1>(kco) == "true") {
+                    EnableTable(table);
+                }
+                else {
+                    DisableTable(table);
+                    DisconnectBMP();
+                }
+            }
+            else if (std::get<0>(kco) == "DEL")
+            {
+                LOG_ERR("Config should not be deleted");
+            }
         }
     }
-
-    redisReply* reply = static_cast<redisReply*>(redisCommand(redis_, BMP_TABLE_NEI_KEYS));
-    if (reply == NULL) {
-        SELF_INFO("RedisManager ResetBGPNeighborTable executing HSET command failed: %s", redis_->errstr);
-        return false;
+    catch (const exception &e) {
+        LOG_ERR("Runtime error: %s", e.what());
     }
-
-    for (size_t i = 0; i < reply->elements; i++) {
-        std::string key = reply->element[i]->str;
-        redisReply* delReply = static_cast<redisReply*>(redisCommand(redis_, "DEL %s", key.c_str()));
-        if (delReply == NULL) {
-            SELF_INFO("RedisManager ResetBGPNeighborTable executing HSET command: %s", redis_->errstr);
-            freeReplyObject(reply);
-            return false;
-        }
-        freeReplyObject(delReply);
-    }
-    freeReplyObject(reply);
-    return true;
 }
 
+  
+
 /**
- * Enable BGP_RIB_IN* Table
+ * ReadBMPTable, there will be dedicated thread be launched inside and monitor corresponding redis table.
  *
- * \param [in] N/A
+ * \param [in] tables             table names to be subscribed.
  */
-bool RedisManager::EnableBGPRibInTable() {
-    ribInTableEnable_ = true;
-    return true;
-}
-
-/**
- * Disable BGP_Rib_In* Table, this will work with reset
- *
- * \param [in] N/A
- */
-bool RedisManager::DisableBGPRibInTable() {
-    neiTableEnable_ = false;
-    return ResetBGPRibInTable();
-}
-
-/**
-    * Reset BGP_RIB_IN* Table
-    *
-    * \param [in] N/A
-    */
-bool RedisManager::ResetBGPRibInTable() {
-    SELF_INFO("RedisManager ResetBGPRibInTable");
-    if (!connected_) {
-        if (!ConnectRedis()) {
-            return false;
-        }
+bool RedisManager::ReadBMPTable(const std::vector<std::string>& tables) {
+    for (const auto& table : tables) {
+        std::shared_ptr<std::thread> threadPtr = std::make_shared<std::thread>(
+            std::bind(&RedisManager::SubscriberWorker, this, table));
+        threadList_.push_back(threadPtr);
     }
-
-    redisReply* reply = static_cast<redisReply*>(redisCommand(redis_, BMP_TABLE_RIB_IN_KEYS));
-    if (reply == NULL) {
-        SELF_INFO("RedisManager ResetBGPRibInTable executing HSET command failed: %s", redis_->errstr);
-        return false;
-    }
-
-    for (size_t i = 0; i < reply->elements; i++) {
-        std::string key = reply->element[i]->str;
-        redisReply* delReply = static_cast<redisReply*>(redisCommand(redis_, "DEL %s", key.c_str()));
-        if (delReply == NULL) {
-            SELF_INFO("RedisManager ResetBGPRibInTable executing HSET command: %s", redis_->errstr);
-            freeReplyObject(reply);
-            return false;
-        }
-        freeReplyObject(delReply);
-    }
-    freeReplyObject(reply);
     return true;
 }
 
 
 /**
- * Enable BGP_RIB_OUT* Table
+ * Enable specific Table
  *
- * \param [in] N/A
+ * \param [in] table    Reference to table name, like BGP_NEIGHBOR_TABLE/BGP_RIB_OUT_TABLE/BGP_RIB_IN_TABLE
  */
-bool RedisManager::EnableBGPRibOutTable() {
-    ribOutTableEnable_ = true;
+bool RedisManager::EnableTable(const std::string & table) {
+    enabledTables_.insert(table);
     return true;
 }
 
 /**
- * Disable BGP_Rib_Out* Table, this will work with reset
+ * Enable BGP_Neighbor* Table
  *
- * \param [in] N/A
+ * \param [in] table    Reference to table name BGP_NEIGHBOR_TABLE/BGP_RIB_OUT_TABLE/BGP_RIB_IN_TABLE
  */
-bool RedisManager::DisableBGPRibOutTable() {
-    ribOutTableEnable_ = false;
-    return ResetBGPRibOutTable();
+bool RedisManager::DisableTable(const std::string & table) {
+    enabledTables_.erase(table);
+    return ResetBMPTable(table);
 }
+
 
 /**
-    * Reset BGP_RIB_OUT* Table
-    *
-    * \param [in] N/A
-    */
-bool RedisManager::ResetBGPRibOutTable() {
-    SELF_INFO("RedisManager ResetBGPRibOutTable");
-    if (!connected_) {
-        if (!ConnectRedis()) {
-            return false;
-        }
-    }
+ * Reset ResetBMPTable, this will flush redis
+ *
+ * \param [in] table    Reference to table name BGP_NEIGHBOR_TABLE/BGP_RIB_OUT_TABLE/BGP_RIB_IN_TABLE
+ */
+bool RedisManager::ResetBMPTable(const std::string & table) {
 
-    redisReply* reply = static_cast<redisReply*>(redisCommand(redis_, BMP_TABLE_RIB_OUT_KEYS));
-    if (reply == NULL) {
-        SELF_INFO("RedisManager ResetBGPRibOutTable executing HSET command failed: %s", redis_->errstr);
-        return false;
-    }
+    LOG_INFO("RedisManager ResetBMPTable %s", table.c_str());
+    swss::Table stateBMPTable(&stateDb_, table);
+    std::vector<std::string> keys;
+    stateBMPTable.getKeys(keys);
+    stateDb_.del(keys);
 
-    for (size_t i = 0; i < reply->elements; i++) {
-        std::string key = reply->element[i]->str;
-        redisReply* delReply = static_cast<redisReply*>(redisCommand(redis_, "DEL %s", key.c_str()));
-        if (delReply == NULL) {
-            SELF_INFO("RedisManager ResetBGPRibOutTable executing HSET command: %s", redis_->errstr);
-            freeReplyObject(reply);
-            return false;
-        }
-        freeReplyObject(delReply);
-    }
-    freeReplyObject(reply);
     return true;
 }
+
+
 
 /**
  * Reset all Tables once FRR reconnects to BMP, this will not disable table population
  *
  * \param [in] N/A
  */
-bool RedisManager::ResetAllTables() {
-    return ResetBGPNeighborTable() && ResetBGPRibInTable() && ResetBGPRibOutTable();
+void RedisManager::ResetAllTables() {
+    LOG_INFO("RedisManager ResetAllTables");
+    for (const auto& enabledTable : enabledTables_) {
+        ResetBMPTable(enabledTable);
+    }
 }

@@ -16,13 +16,10 @@
  */
 
 #include "BMPListener.h"
-//#include "MsgBusImpl_kafka.h"
 #include "MsgBusInterface.hpp"
 #include "client_thread.h"
 #include "openbmpd_version.h"
 #include "Config.h"
-#include <sonic-swss-common/common/dbconnector.h>
-#include <sonic-swss-common/common/table.h>
 
 #include <unistd.h>
 #include <fstream>
@@ -363,11 +360,10 @@ bool ReadCmdArgs(int argc, char **argv, Config &cfg) {
 /**
  * Collector Update Message
  *
- * \param [in] kafka                 Pointer to kafka instance
  * \param [in] cfg                   Reference to configuration
  * \param [in] code                  reason code for the update
  */
-void collector_update_msg( Config &cfg,
+void collector_update_msg(Config &cfg,
                           MsgBusInterface::collector_action_code code) {
 
     MsgBusInterface::obj_collector oc;
@@ -391,8 +387,6 @@ void collector_update_msg( Config &cfg,
     gettimeofday(&tv, NULL);
     oc.timestamp_secs = tv.tv_sec;
     oc.timestamp_us = tv.tv_usec;
-
-   // kafka->update_Collector(oc, code);
 }
 
 /**
@@ -401,7 +395,6 @@ void collector_update_msg( Config &cfg,
  * \param [in]  cfg    Reference to the config options
  */
 void runServer(Config &cfg) {
-   // msgBus_kafka *kafka;
     int active_connections = 0;                 // Number of active connections/threads
     int concurrent_routers = 0;			// Number of concurrent routers
     time_t last_heartbeat_time = 0;
@@ -419,13 +412,10 @@ void runServer(Config &cfg) {
         memcpy(cfg.c_hash_id, hash_raw, 16);
         delete[] hash_raw;
 
-        // Kafka connection
-       // kafka = new msgBus_kafka(logger, &cfg, cfg.c_hash_id);
-
         // allocate and start a new bmp server
         BMPListener *bmp_svr = new BMPListener(logger, &cfg);
 
-        collector_update_msg( cfg, MsgBusInterface::COLLECTOR_ACTION_STARTED);
+        collector_update_msg(cfg, MsgBusInterface::COLLECTOR_ACTION_STARTED);
         last_heartbeat_time = time(NULL);
 
         LOG_INFO("Ready. Waiting for connections");
@@ -451,7 +441,7 @@ void runServer(Config &cfg) {
                     delete thr_list.at(i);
                     thr_list.erase(thr_list.begin() + i);
 
-                    collector_update_msg( cfg,
+                    collector_update_msg(cfg,
                                          MsgBusInterface::COLLECTOR_ACTION_CHANGE);
 
                 }
@@ -520,7 +510,7 @@ void runServer(Config &cfg) {
                         // Free attribute
                         pthread_attr_destroy(&thr_attr);
 
-                        collector_update_msg( cfg,
+                        collector_update_msg(cfg,
                                              MsgBusInterface::COLLECTOR_ACTION_CHANGE);
 
                         last_heartbeat_time = time(NULL);
@@ -530,7 +520,7 @@ void runServer(Config &cfg) {
 
                         // Send heartbeat if needed
                         if ( (time(NULL) - last_heartbeat_time) >= cfg.heartbeat_interval) {
-                            collector_update_msg( cfg, MsgBusInterface::COLLECTOR_ACTION_HEARTBEAT);
+                            collector_update_msg(cfg, MsgBusInterface::COLLECTOR_ACTION_HEARTBEAT);
                             last_heartbeat_time = time(NULL);
                         }
 
@@ -544,8 +534,7 @@ void runServer(Config &cfg) {
 	        }
 	    }
 
-        collector_update_msg( cfg, MsgBusInterface::COLLECTOR_ACTION_STOPPED);
-
+        collector_update_msg(cfg, MsgBusInterface::COLLECTOR_ACTION_STOPPED);
 
     } catch (char const *str) {
         LOG_WARN(str);
@@ -557,7 +546,7 @@ void runServer(Config &cfg) {
  */
 int main(int argc, char **argv) {
     Config cfg;
-    swss::DBConnector stateDb("STATE_DB", 0, true);
+
     // Process the command line args
     if (ReadCmdArgs(argc, argv, cfg)) {
         return 1;
