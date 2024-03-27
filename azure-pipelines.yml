@@ -72,10 +72,12 @@ jobs:
         cmake -DBUILD_SHARED_LIBS=OFF ..
         make
         sudo make install
+        cd ../../
 
         git clone https://github.com/sonic-net/sonic-swss-common.git
         sudo apt-get install make libtool m4 autoconf dh-exec debhelper cmake pkg-config nlohmann-json3-dev \
-                    libpython2.7-dev libpython3-dev \
+                    libhiredis-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev \
+                    libnl-nf-3-dev swig3.0 libpython2.7-dev libpython3-dev \
                     libgtest-dev libgmock-dev libboost-serialization-dev uuid-dev libzmq5 libzmq3-dev
         sudo apt-get install -y redis-server redis-tools
         sudo apt-get install -y python3-pip
@@ -92,10 +94,15 @@ jobs:
         ./configure
         make
         sudo make install
+        sudo mkdir -p /usr/local/include/sonic-swss-common/common
+        sudo cp common/*.h /usr/local/include/sonic-swss-common/common
+        cd ../
+        sudo ls -R /usr/local/include
 
         git clone https://github.com/FengPan-Frank/sonic-bmp.git
+        sudo ls /usr/local/lib
         cd sonic-bmp
-        git checkout $(BUILD_BRANCH)
+        git checkout azure-pipelines
         mkdir build
         cd build
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../  
