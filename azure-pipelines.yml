@@ -51,6 +51,14 @@ jobs:
     - checkout: none
     - script: |
         sudo apt-get update
+        sudo apt-get install -qq -y \
+        libhiredis-dev \
+        libnl-3-dev \
+        libnl-genl-3-dev \
+        libnl-route-3-dev \
+        libnl-nf-3-dev \
+        swig
+
         sudo apt-get install libsasl2-dev
         sudo apt-get install libcurl4-openssl-dev
         sudo apt-get install libssl-dev
