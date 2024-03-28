@@ -97,12 +97,10 @@ jobs:
         sudo mkdir -p /usr/local/include/sonic-swss-common/common
         sudo cp common/*.h /usr/local/include/sonic-swss-common/common
         cd ../
-        sudo ls -R /usr/local/include
 
         git clone https://github.com/FengPan-Frank/sonic-bmp.git
-        sudo ls /usr/local/lib
         cd sonic-bmp
-        git checkout azure-pipelines
+        git checkout $(BUILD_BRANCH)
         mkdir build
         cd build
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../  
