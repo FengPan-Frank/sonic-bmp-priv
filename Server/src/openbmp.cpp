@@ -21,6 +21,8 @@
 #include "client_thread.h"
 #include "openbmpd_version.h"
 #include "Config.h"
+#include <sonic-swss-common/common/dbconnector.h>
+#include <sonic-swss-common/common/table.h>
 
 #include <unistd.h>
 #include <fstream>
@@ -555,7 +557,7 @@ void runServer(Config &cfg) {
  */
 int main(int argc, char **argv) {
     Config cfg;
-
+    swss::DBConnector stateDb("STATE_DB", 0, true);
     // Process the command line args
     if (ReadCmdArgs(argc, argv, cfg)) {
         return 1;

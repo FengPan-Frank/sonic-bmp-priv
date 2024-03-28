@@ -43,10 +43,7 @@ jobs:
 - job: build
   timeoutInMinutes: 240
   pool:
-    ${{ if ne(parameters.pool, 'default') }}:
-      name: ${{ parameters.pool }}
-    ${{ else }}:
-      vmImage: 'ubuntu-20.04'
+    vmImage: 'ubuntu-20.04'
   container:
     image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:latest
 
@@ -54,6 +51,14 @@ jobs:
     - checkout: none
     - script: |
         sudo apt-get update
+        sudo apt-get install -qq -y \
+        libhiredis-dev \
+        libnl-3-dev \
+        libnl-genl-3-dev \
+        libnl-route-3-dev \
+        libnl-nf-3-dev \
+        swig
+
         sudo apt-get install libsasl2-dev
         sudo apt-get install libcurl4-openssl-dev
         sudo apt-get install libssl-dev
@@ -67,11 +72,31 @@ jobs:
         cmake -DBUILD_SHARED_LIBS=OFF ..
         make
         sudo make install
+        cd ../../
 
-        git clone https://github.com/redis/hiredis.git
-        cd hiredis
+        git clone https://github.com/sonic-net/sonic-swss-common.git
+        sudo apt-get install make libtool m4 autoconf dh-exec debhelper cmake pkg-config nlohmann-json3-dev \
+                    libhiredis-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev \
+                    libnl-nf-3-dev swig3.0 libpython2.7-dev libpython3-dev \
+                    libgtest-dev libgmock-dev libboost-serialization-dev uuid-dev libzmq5 libzmq3-dev
+        sudo apt-get install -y redis-server redis-tools
+        sudo apt-get install -y python3-pip
+        sudo pip3 install pytest
+        sudo apt-get install -y python
+        sudo apt-get install -y libyang-dev
+        ARCH=$(dpkg --print-architecture)
+        set -x
+        sudo curl -fsSL -o /usr/local/bin/bazel \
+            https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-${ARCH}
+        sudo chmod 755 /usr/local/bin/bazel
+        cd sonic-swss-common
+        ./autogen.sh
+        ./configure
         make
         sudo make install
+        sudo mkdir -p /usr/local/include/sonic-swss-common/common
+        sudo cp common/*.h /usr/local/include/sonic-swss-common/common
+        cd ../
 
         git clone https://github.com/FengPan-Frank/sonic-bmp.git
         cd sonic-bmp
