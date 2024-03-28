@@ -21,7 +21,10 @@
 #include <boost/algorithm/string/replace.hpp>
 
 #include "Config.h"
-//#include "kafka/KafkaTopicSelector.h"
+
+#ifndef REDIS_ENABLED
+#include "kafka/KafkaTopicSelector.h"
+#endif
 
 /*********************************************************************//**
  * Constructor for class
@@ -57,6 +60,25 @@ Config::Config() {
     pat_enabled		= false;
     bzero(admin_id, sizeof(admin_id));
 
+    /*
+     * Initialized the kafka topic names
+     *      The keys match the configuration node/vars. Topic name nodes will be ignored if
+     *      not initialized here.
+     */
+#ifndef REDIS_ENABLED
+    topic_names_map[MSGBUS_TOPIC_VAR_COLLECTOR]        = MSGBUS_TOPIC_COLLECTOR;
+    topic_names_map[MSGBUS_TOPIC_VAR_ROUTER]           = MSGBUS_TOPIC_ROUTER;
+    topic_names_map[MSGBUS_TOPIC_VAR_PEER]             = MSGBUS_TOPIC_PEER;
+    topic_names_map[MSGBUS_TOPIC_VAR_BMP_STAT]         = MSGBUS_TOPIC_BMP_STAT;
+    topic_names_map[MSGBUS_TOPIC_VAR_BMP_RAW]          = MSGBUS_TOPIC_BMP_RAW;
+    topic_names_map[MSGBUS_TOPIC_VAR_BASE_ATTRIBUTE]   = MSGBUS_TOPIC_BASE_ATTRIBUTE;
+    topic_names_map[MSGBUS_TOPIC_VAR_UNICAST_PREFIX]   = MSGBUS_TOPIC_UNICAST_PREFIX;
+    topic_names_map[MSGBUS_TOPIC_VAR_LS_NODE]          = MSGBUS_TOPIC_LS_NODE;
+    topic_names_map[MSGBUS_TOPIC_VAR_LS_LINK]          = MSGBUS_TOPIC_LS_LINK;
+    topic_names_map[MSGBUS_TOPIC_VAR_LS_PREFIX]        = MSGBUS_TOPIC_LS_PREFIX;
+    topic_names_map[MSGBUS_TOPIC_VAR_L3VPN]            = MSGBUS_TOPIC_L3VPN;
+    topic_names_map[MSGBUS_TOPIC_VAR_EVPN]             = MSGBUS_TOPIC_EVPN;
+#endif
 }
 
 /*********************************************************************//**
