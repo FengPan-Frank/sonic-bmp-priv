@@ -105,3 +105,4 @@ jobs:
         cd build
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../  
         make
+        ldconfig -p | grep libsasl2
