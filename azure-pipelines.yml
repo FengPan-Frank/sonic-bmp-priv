@@ -100,9 +100,9 @@ jobs:
 
         git clone https://github.com/FengPan-Frank/sonic-bmp.git
         cd sonic-bmp
-        git checkout $(BUILD_BRANCH)
+        git checkout fenpan_swsscommon
         mkdir build
         cd build
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../  
         make
-        ldconfig -p | grep libsasl2
+       
