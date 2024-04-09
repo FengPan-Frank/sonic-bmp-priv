@@ -19,6 +19,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include "bgp_common.h"
+#include "RedisManager.h"
 
 /**
  * Constructor for class
@@ -332,6 +333,9 @@ void parseBMP::parseBMPv3(int sock) {
             break;
 
         case TYPE_INIT_MSG:
+        {
+            break;
+        }
         case TYPE_TERM_MSG:
             // Allowed
             break;

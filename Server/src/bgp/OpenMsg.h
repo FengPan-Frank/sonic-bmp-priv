@@ -28,7 +28,7 @@ namespace bgp_msg {
  */
 class OpenMsg {
 public:
-   /**
+    /**
      * Defines the BGP capabilities
      *      http://www.iana.org/assignments/capability-codes/capability-codes.xhtml
      */
@@ -47,6 +47,8 @@ public:
             BGP_CAP_MULTI_SESSION,
             BGP_CAP_ADD_PATH,
             BGP_CAP_ROUTE_REFRESH_ENHANCED,
+            BGP_CAP_LONG_LIVE_GRACEFUL_RESTART=71,
+            BGP_CAP_FQDN=73,
             BGP_CAP_ROUTE_REFRESH_OLD=128
     };
 

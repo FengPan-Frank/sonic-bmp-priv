@@ -33,13 +33,22 @@ find_library(LIBYAML_CPP_LIBRARY
         lib64
         lib)
 
-
 find_path(LIBSWSSCOMMON_INCLUDE_DIR
         sonic-swss-common/common/dbconnector.h
         HINTS
         ${HINT_ROOT_DIR}
         PATH_SUFFIXES
         include)
+
+
+find_library(LIBHIREDIS_LIBRARY
+        NAMES
+        libhiredis.a hiredis
+        HINTS
+        ${HINT_ROOT_DIR}
+        PATH_SUFFIXES
+        lib64
+        lib)
 
 find_library(LIBSWSSCOMMON_LIBRARY
         NAMES
@@ -60,13 +69,6 @@ find_library(LIBRT_LIBRARY
         lib)
 
 
-if (NOT LIBSWSSCOMMON_INCLUDE_DIR OR NOT LIBSWSSCOMMON_LIBRARY)
-	Message (FATAL_ERROR "swsscommon was not found, cannot proceed.  Visit https://github.com/sonic-net/sonic-swss-common for details on how to install it.")
-#else ()
-#	Message ("lib = " ${LIBSWSSCOMMON_LIBRARY})
-endif()
-
-
 if (NOT LIBYAML_CPP_INCLUDE_DIR OR NOT LIBYAML_CPP_LIBRARY)
     Message (FATAL_ERROR "Libyaml-cpp was not found, cannot proceed.  Visit https://github.com/jbeder/yaml-cpp for install details.")
 endif()
@@ -75,11 +77,21 @@ if (NOT LIBRT_LIBRARY AND NOT MACOSX)
     Message (FATAL_ERROR "librt was not found, cannot proceed.")
 endif()
 
+if (NOT LIBHIREDIS_LIBRARY)
+	Message (FATAL_ERROR "Libhiredis was not found, cannot proceed.  Visit https://github.com/redis/hiredis for details on how to install it.")
+#else ()
+#	Message ("lib = " ${LIBHIREDIS_LIBRARY})
+endif()
 
+if (NOT LIBSWSSCOMMON_INCLUDE_DIR OR NOT LIBSWSSCOMMON_LIBRARY)
+	Message (FATAL_ERROR "swsscommon was not found, cannot proceed.  Visit https://github.com/sonic-net/sonic-swss-common for details on how to install it.")
+#else ()
+#	Message ("lib = " ${LIBSWSSCOMMON_LIBRARY})
+endif()
 
 # Update the include dir
-include_directories(${LIBSWSSCOMMON_INCLUDE_DIR} ${LIBYAML_CPP_INCLUDE_DIR} src/ src/bmp src/bgp src/bgp/linkstate )
-
+include_directories(${LIBSWSSCOMMON_INCLUDE_DIR} ${LIBYAML_CPP_INCLUDE_DIR} src/ src/bmp src/bgp src/bgp/linkstate)
+#link_directories(${LIBRDKAFKA_LIBRARY})
 
 # Define the source files to compile
 set (SRC_FILES
@@ -90,6 +102,7 @@ set (SRC_FILES
 	src/md5.cpp
 	src/Logger.cpp
     src/Config.cpp
+    src/RedisManager.cpp
 	src/client_thread.cpp
 	src/bgp/parseBGP.cpp
 	src/bgp/NotificationMsg.cpp
@@ -102,6 +115,7 @@ set (SRC_FILES
     src/bgp/EVPN.cpp
     src/bgp/linkstate/MPLinkState.cpp
     src/bgp/linkstate/MPLinkStateAttr.cpp
+    src/redis/MsgBusImpl_redis.cpp
     )
 
 # Disable warnings
@@ -124,7 +138,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 # Set the libs to link
-set (LIBS pthread ${LIBYAML_CPP_LIBRARY} ${LIBSWSSCOMMON_LIBRARY} z ${SSL_LIBS} dl)
+set (LIBS pthread ${LIBYAML_CPP_LIBRARY} ${LIBHIREDIS_LIBRARY} ${LIBSWSSCOMMON_LIBRARY} z ${SSL_LIBS} dl)
 
 # Set the binary
 add_executable (openbmpd ${SRC_FILES})
