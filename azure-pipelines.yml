@@ -104,8 +104,10 @@ jobs:
         sudo ls /usr/local/lib
 
         git checkout fenpan_redis
+
         mkdir build
         cd build
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../  
         make
         sudo ldconfig -p | grep libsasl2 
+
