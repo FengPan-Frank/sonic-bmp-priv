@@ -104,7 +104,10 @@ jobs:
         sudo ls /usr/local/lib
         ldd /usr/local/lib/libswsscommon.a
 
-        git checkout fenpan_swsscommon
+
+        ls $(Build.SourceBranchName)
+        ls $(System.PullRequest.TargetBranch)
+        git checkout $(Build.SourceBranchName)
         mkdir build
         cd build
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_REDIS=ON ../  
