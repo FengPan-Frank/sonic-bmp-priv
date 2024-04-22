@@ -102,6 +102,7 @@ jobs:
         cd sonic-bmp
         sudo cp /usr/lib/x86_64-linux-gnu/libhiredis.* /usr/local/lib
         sudo ls /usr/local/lib
+        ldd /usr/local/lib/libswsscommon.a
 
         git checkout fenpan_swsscommon
         mkdir build
