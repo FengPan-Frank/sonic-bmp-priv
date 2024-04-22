@@ -50,6 +50,8 @@ jobs:
   steps:
     - checkout: none
     - script: |
+        ls $(Build.SourceBranchName)
+        ls $(System.PullRequest.TargetBranch)
         sudo apt-get update
         sudo apt-get install -qq -y \
         libhiredis-dev \
@@ -105,8 +107,6 @@ jobs:
         ldd /usr/local/lib/libswsscommon.a
 
 
-        ls $(Build.SourceBranchName)
-        ls $(System.PullRequest.TargetBranch)
         git checkout $(Build.SourceBranchName)
         mkdir build
         cd build
