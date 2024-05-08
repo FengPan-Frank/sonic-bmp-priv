@@ -67,14 +67,14 @@ jobs:
         sudo apt-get install libssl1.0.0
         sudo apt-get install gcc g++ libboost-dev cmake zlib1g-dev libsasl2-2
 
-        #git clone https://github.com/jbeder/yaml-cpp.git
-        #cd yaml-cpp
-        #mkdir build
-        #cd build
-        #cmake -DBUILD_SHARED_LIBS=OFF ..
-        #make
-        #sudo make install
-        #cd ../../
+        git clone https://github.com/jbeder/yaml-cpp.git
+        cd yaml-cpp
+        mkdir build
+        cd build
+        cmake -DBUILD_SHARED_LIBS=OFF ..
+        make
+        sudo make install
+        cd ../../
 
         git clone https://github.com/sonic-net/sonic-swss-common.git
         sudo apt-get install make libtool m4 autoconf dh-exec debhelper cmake pkg-config nlohmann-json3-dev \
