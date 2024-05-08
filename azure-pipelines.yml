@@ -27,7 +27,7 @@ parameters:
 variables:
   - name: BUILD_BRANCH
     ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
-      value: $(Build.SourceBranchName)
+      value: $(System.PullRequest.TargetBranch)
     ${{ else }}:
       value: $(Build.SourceBranchName)
 
@@ -46,9 +46,13 @@ jobs:
     vmImage: 'ubuntu-20.04'
   container:
     image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:latest
-
+  
   steps:
-    - checkout: none
+    - checkout: self
+      clean: true
+      submodules: recursive
+      displayName: 'Checkout code'
+
     - script: |
         ls $(Build.SourceBranchName)
         ls $(System.PullRequest.TargetBranch)
@@ -67,15 +71,40 @@ jobs:
         sudo apt-get install libssl1.0.0
         sudo apt-get install gcc g++ libboost-dev cmake zlib1g-dev libsasl2-2
 
-        #git clone https://github.com/jbeder/yaml-cpp.git
-        #cd yaml-cpp
-        #mkdir build
-        #cd build
-        #cmake -DBUILD_SHARED_LIBS=OFF ..
-        #make
-        #sudo make install
-        #cd ../../
+        git clone https://github.com/jbeder/yaml-cpp.git
+        cd yaml-cpp
+        mkdir build
+        cd build
+        cmake -DBUILD_SHARED_LIBS=OFF ..
+        make
+        sudo make install
+        cd ../../
 
+        sudo apt-get remove -y libcurl4-openssl-dev
+        git clone https://github.com/edenhill/librdkafka.git
+        pushd librdkafka
+        ./configure
+        make
+        sudo make install
+        popd
+      displayName: 'Install dependencies'
+
+    - script: |
+        mkdir original_bmp
+        pushd original_bmp
+        git clone https://github.com/FengPan-Frank/sonic-bmp.git
+        pushd sonic-bmp
+        git checkout fenpan_swsscommon
+        mkdir build
+        pushd build
+        cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../
+        make
+        popd
+        popd
+        popd
+      displayName: 'Build original openbmp for sanity check'
+
+    - script: |
         git clone https://github.com/sonic-net/sonic-swss-common.git
         sudo apt-get install make libtool m4 autoconf dh-exec debhelper cmake pkg-config nlohmann-json3-dev \
                     libhiredis-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev \
@@ -100,15 +129,19 @@ jobs:
         sudo cp common/*.h /usr/local/include/sonic-swss-common/common
         cd ../
 
+        mkdir new_sonic_bmp
+        pushd new_sonic_bmp
         git clone https://github.com/FengPan-Frank/sonic-bmp.git
         cd sonic-bmp
-        sudo cp /usr/lib/x86_64-linux-gnu/libhiredis.* /usr/local/lib
-        sudo ls /usr/local/lib
-        ldd /usr/local/lib/libswsscommon.a
-
-        git checkout $(Build.SourceBranchName)
+        git checkout fenpan_swsscommon
+        ls /usr/local/include/sonic-swss-common/common
         mkdir build
         cd build
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_REDIS=ON ../  
         make
-        sudo ldconfig -p | grep libsasl2 
+
+      displayName: 'Build sonic-bmp'
+
+    - publish: $(System.DefaultWorkingDirectory)/
+      artifact: sonic-bmp.amd64.ubuntu20_04
+      displayName: "Archive sonic-bmp packages"
