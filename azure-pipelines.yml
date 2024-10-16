@@ -112,4 +112,9 @@ jobs:
         cd build
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_REDIS=ON ../  
         make
-        sudo ldconfig -p | grep libsasl2 
+
+      displayName: 'Build sonic-bmp'
+
+    - publish: $(System.DefaultWorkingDirectory)/
+      artifact: sonic-bmp.amd64.ubuntu20_04
+      displayName: "Archive sonic-bmp packages"
