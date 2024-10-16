@@ -22,7 +22,7 @@ parameters:
 
 - name: sonic_slave
   type: string
-  default: sonic-slave-bullseye
+  default: sonic-slave-bookworm
 
 variables:
   - name: BUILD_BRANCH
