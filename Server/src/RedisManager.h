@@ -29,14 +29,12 @@
 /**
  * BMP_TABLE_* defines the default table name prefix
  */
-#define BMP_DB_NAME                "STATE_DB"
+#define BMP_DB_NAME                "BMP_STATE_DB"
 #define BMP_TABLE_NEI              "BGP_NEIGHBOR_TABLE"
 #define BMP_TABLE_RIB_IN           "BGP_RIB_IN_TABLE"
 #define BMP_TABLE_RIB_OUT          "BGP_RIB_OUT_TABLE"
 #define BMP_TABLE_NEI_PREFIX       "BGP_NEIGHBOR"
-#define BMP_TABLE_NEI_KEYS         "KEYS BGP_NEIGHBOR*"
-#define BMP_TABLE_RIB_IN_KEYS      "KEYS BGP_RIB_IN_TABLE*"
-#define BMP_TABLE_RIB_OUT_KEYS     "KEYS BGP_RIB_OUT_TABLE*"
+
 
 /**
  * BMP_CFG_TABLE_* defines config db tables.
@@ -45,7 +43,6 @@
 #define BMP_CFG_TABLE_NEI          "bgp_neighbor_table"
 #define BMP_CFG_TABLE_RIB_IN       "bgp-rib-in-table"
 #define BMP_CFG_TABLE_RIB_OUT      "bgp-rib-out-table"
-#define BMP_CFG_TABLE_SELECT_TIMEOUT 1000
 
 /**
  * \class   RedisManager
@@ -127,12 +124,12 @@ public:
     bool ReadBMPTable(const std::vector<std::string>& tables);
 
     /**
-     * RemoveBMPTable
+     * RemoveEntityFromBMPTable
      *
      * \param [in] table            Reference to table name
      * \param [in] args             Reference to various keys
      */
-    bool RemoveBMPTable(const std::vector<std::string>& keys);
+    bool RemoveEntityFromBMPTable(const std::vector<std::string>& keys);
 
     /**
      * Enable specific Table
