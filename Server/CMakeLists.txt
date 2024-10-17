@@ -66,7 +66,7 @@ if (NOT ENABLE_REDIS)
             lib)
 else ()
     find_path(LIBSWSSCOMMON_INCLUDE_DIR
-            /usr/include/swss/dbconnector.h
+            sonic-swss-common/common/dbconnector.h
             HINTS
             ${HINT_ROOT_DIR}
             PATH_SUFFIXES
@@ -102,7 +102,7 @@ find_library(LIBRT_LIBRARY
 
 if (ENABLE_REDIS)
     if (NOT LIBHIREDIS_LIBRARY)
-        Message (FATAL_ERROR "Libhiredis 1 was not found, cannot proceed.  Visit https://github.com/redis/hiredis for details on how to install it.")
+        Message (FATAL_ERROR "Libhiredis was not found, cannot proceed.  Visit https://github.com/redis/hiredis for details on how to install it.")
     else ()
         Message ("lib = " ${LIBHIREDIS_LIBRARY})
     endif()
