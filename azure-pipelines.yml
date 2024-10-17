@@ -87,9 +87,9 @@ jobs:
         sudo apt-get remove -y libcurl4-openssl-dev
         git clone https://github.com/edenhill/librdkafka.git
         pushd librdkafka
-        #./configure
-        #make
-        #sudo make install
+        ./configure
+        make
+        sudo make install
         popd
       displayName: 'Install dependencies'
 
