@@ -145,9 +145,8 @@ jobs:
         sudo dpkg -i libswsscommon_1.0.0_amd64.deb
         sudo dpkg -i libswsscommon-dev_1.0.0_amd64.deb
         sudo dpkg -i python3-swsscommon_1.0.0_amd64.deb
-        #sudo dpkg-query -L libswsscommon-dev  
-        #sudo mkdir -p /usr/local/include/sonic-swss-common/common
-        #sudo cp /usr/include/swss/*.h /usr/local/include/sonic-swss-common/common
+        sudo mkdir -p /usr/local/include/sonic-swss-common/common
+        sudo cp /usr/include/swss/*.h /usr/local/include/sonic-swss-common/common
       workingDirectory: $(Pipeline.Workspace)/
       displayName: 'Install libswsscommon package'
 
@@ -159,7 +158,6 @@ jobs:
         git clone https://github.com/FengPan-Frank/sonic-bmp.git
         cd sonic-bmp
         git checkout fenpan_swsscommon
-        ls /usr/include/swss/
         mkdir build
         cd build
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_REDIS=ON ../  
