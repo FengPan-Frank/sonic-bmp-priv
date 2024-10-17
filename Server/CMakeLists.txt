@@ -66,7 +66,11 @@ if (NOT ENABLE_REDIS)
             lib)
 else ()
     find_path(LIBSWSSCOMMON_INCLUDE_DIR
+<<<<<<< HEAD
             /usr/include/swss/dbconnector.h
+=======
+            sonic-swss-common/common/dbconnector.h
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
             HINTS
             ${HINT_ROOT_DIR}
             PATH_SUFFIXES
@@ -74,7 +78,11 @@ else ()
 
     find_library(LIBHIREDIS_LIBRARY
             NAMES
+<<<<<<< HEAD
             libhiredis.a hiredis
+=======
+            hiredis
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
             HINTS
             ${HINT_ROOT_DIR}
             PATH_SUFFIXES
@@ -100,6 +108,7 @@ find_library(LIBRT_LIBRARY
         lib64
         lib)
 
+<<<<<<< HEAD
 if (NOT ENABLE_REDIS)
     if (NOT LIBRDKAFKA_INCLUDE_DIR OR NOT LIBRDKAFKA_LIBRARY OR NOT LIBRDKAFKA_CPP_LIBRARY)
         Message (FATAL_ERROR "Librdkafka was not found, cannot proceed.  Visit https://github.com/edenhill/librdkafka for details on how to install it.")
@@ -109,6 +118,11 @@ if (NOT ENABLE_REDIS)
 else ()
     if (NOT LIBHIREDIS_LIBRARY)
         Message (FATAL_ERROR "Libhiredis 1 was not found, cannot proceed.  Visit https://github.com/redis/hiredis for details on how to install it.")
+=======
+if (ENABLE_REDIS)
+    if (NOT LIBHIREDIS_LIBRARY)
+        Message (FATAL_ERROR "Libhiredis was not found, cannot proceed.  Visit https://github.com/redis/hiredis for details on how to install it.")
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
     else ()
         Message ("lib = " ${LIBHIREDIS_LIBRARY})
     endif()
@@ -117,6 +131,15 @@ else ()
     else ()
         Message ("lib = " ${LIBSWSSCOMMON_LIBRARY})
     endif()
+<<<<<<< HEAD
+=======
+else ()
+    if (NOT LIBRDKAFKA_INCLUDE_DIR OR NOT LIBRDKAFKA_LIBRARY OR NOT LIBRDKAFKA_CPP_LIBRARY)
+        Message (FATAL_ERROR "Librdkafka was not found, cannot proceed.  Visit https://github.com/edenhill/librdkafka for details on how to install it.")
+    else ()
+        Message ("lib = " ${LIBRDKAFKA_LIBRARY})
+    endif()
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
 endif()
 
 if (NOT LIBYAML_CPP_INCLUDE_DIR OR NOT LIBYAML_CPP_LIBRARY)

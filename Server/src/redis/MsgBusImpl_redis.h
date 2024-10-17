@@ -24,6 +24,10 @@
   */
 class MsgBusImpl_redis: public MsgBusInterface {
 public:
+<<<<<<< HEAD
+=======
+    const int MAX_ATTRIBUTES_COUNT = 100;
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
 
     /******************************************************************//**
      * \brief This function will initialize and connect to Kafka.
@@ -36,6 +40,16 @@ public:
     MsgBusImpl_redis(Logger *logPtr, Config *cfg, BMPListener::ClientInfo *client);
     ~MsgBusImpl_redis();
 
+<<<<<<< HEAD
+=======
+    /**
+     * Reset all Tables once FRR reconnects to BMP, this will not disable table population
+     *
+     * \param [in] N/A
+     */
+    void ResetAllTables();
+
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
     /*
      * abstract methods implemented
      * See MsgBusInterface.hpp for method details

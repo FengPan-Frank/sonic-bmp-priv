@@ -13,10 +13,13 @@
 #include "MsgBusImpl_redis.h"
 #include "RedisManager.h"
 
+<<<<<<< HEAD
 
 
 
 
+=======
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
 using namespace std;
 
 /******************************************************************//**
@@ -30,6 +33,7 @@ using namespace std;
 MsgBusImpl_redis::MsgBusImpl_redis(Logger *logPtr, Config *cfg, BMPListener::ClientInfo *client) {
     logger = logPtr;
     this->cfg = cfg;
+<<<<<<< HEAD
     redisMgr_.Setup(logPtr, client);
     std::vector<std::string> tables;
     tables.emplace_back(BMP_CFG_TABLE_NEI);
@@ -37,6 +41,10 @@ MsgBusImpl_redis::MsgBusImpl_redis(Logger *logPtr, Config *cfg, BMPListener::Cli
     tables.emplace_back(BMP_CFG_TABLE_RIB_OUT);
 
     redisMgr_.ReadBMPTable(tables);
+=======
+    redisMgr_.Setup(logPtr);
+    redisMgr_.InitBMPConfig();
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
 }
 
 /**
@@ -46,6 +54,17 @@ MsgBusImpl_redis::~MsgBusImpl_redis() {
     redisMgr_.ExitRedisManager();
 }
 
+<<<<<<< HEAD
+=======
+/**
+ * Reset all Tables once FRR reconnects to BMP, this will not disable table population
+ *
+ * \param [in] N/A
+ */
+void MsgBusImpl_redis::ResetAllTables() {
+    redisMgr_.ResetAllTables();
+}
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
 
 /**
  * Abstract method Implementation - See MsgBusInterface.hpp for details
@@ -53,6 +72,7 @@ MsgBusImpl_redis::~MsgBusImpl_redis() {
 void MsgBusImpl_redis::update_Peer(obj_bgp_peer &peer, obj_peer_up_event *up, obj_peer_down_event *down, peer_action_code code) {
 
     // Below attributes will be populated if exists, and no matter bgp neighbor is up or down
+<<<<<<< HEAD
     std::vector<swss::FieldValueTuple> fieldValues;
     fieldValues.reserve(30);
     std::vector<std::string> keys;
@@ -80,6 +100,30 @@ void MsgBusImpl_redis::update_Peer(obj_bgp_peer &peer, obj_peer_up_event *up, ob
             fieldValues.emplace_back(std::make_pair("bgp_err_code", std::to_string(down->bgp_err_code)));
             fieldValues.emplace_back(std::make_pair("bgp_err_subcode", std::to_string(down->bgp_err_subcode)));
             fieldValues.emplace_back(std::make_pair("error_text", down->error_text));
+=======
+    vector<swss::FieldValueTuple> fieldValues;
+    fieldValues.reserve(MAX_ATTRIBUTES_COUNT);
+    vector<string> keys;
+    keys.emplace_back(peer.peer_addr);
+
+    fieldValues.emplace_back(make_pair("peer_addr", peer.peer_addr));
+    fieldValues.emplace_back(make_pair("peer_asn", to_string(peer.peer_as)));
+    fieldValues.emplace_back(make_pair("peer_rd", peer.peer_rd));
+    fieldValues.emplace_back(make_pair("remote_port", to_string(up->remote_port)));
+    fieldValues.emplace_back(make_pair("local_asn", to_string(up->local_asn)));
+    fieldValues.emplace_back(make_pair("local_ip", up->local_ip));
+    fieldValues.emplace_back(make_pair("local_port", to_string(up->local_port)));
+    fieldValues.emplace_back(make_pair("sent_cap", up->sent_cap));
+    fieldValues.emplace_back(make_pair("recv_cap", up->recv_cap));
+
+    switch (code) {
+        case PEER_ACTION_DOWN:
+        {
+            // PEER DOWN only
+            fieldValues.emplace_back(make_pair("bgp_err_code", to_string(down->bgp_err_code)));
+            fieldValues.emplace_back(make_pair("bgp_err_subcode", to_string(down->bgp_err_subcode)));
+            fieldValues.emplace_back(make_pair("error_text", down->error_text));
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
 
         }
         break;
@@ -91,12 +135,17 @@ void MsgBusImpl_redis::update_Peer(obj_bgp_peer &peer, obj_peer_up_event *up, ob
 /**
  * Abstract method Implementation - See MsgBusInterface.hpp for details
  */
+<<<<<<< HEAD
 void MsgBusImpl_redis::update_unicastPrefix(obj_bgp_peer &peer, std::vector<obj_rib> &rib,
+=======
+void MsgBusImpl_redis::update_unicastPrefix(obj_bgp_peer &peer, vector<obj_rib> &rib,
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
                                         obj_path_attr *attr, unicast_prefix_action_code code) {
     if (attr == NULL)
         return;
 
     // Loop through the vector array of rib entries
+<<<<<<< HEAD
     std::vector<swss::FieldValueTuple> addFieldValues;
     addFieldValues.reserve(30);
     std::vector<std::string> del_keys;
@@ -108,6 +157,20 @@ void MsgBusImpl_redis::update_unicastPrefix(obj_bgp_peer &peer, std::vector<obj_
         redisMgr_pfx += "/";
         redisMgr_pfx += std::to_string(rib[i].prefix_len);
         keys.reserve(10);
+=======
+    vector<swss::FieldValueTuple> addFieldValues;
+    addFieldValues.reserve(MAX_ATTRIBUTES_COUNT);
+    vector<string> del_keys;
+    string neigh = peer.peer_addr;
+
+    for (size_t i = 0; i < rib.size(); i++) {
+        // rib table schema as BGP_RIB_OUT_TABLE|192.181.168.0/25|10.0.0.59
+        vector<string> keys;
+        string redisMgr_pfx = rib[i].prefix;
+        redisMgr_pfx += "/";
+        redisMgr_pfx += to_string(rib[i].prefix_len);
+        keys.reserve(MAX_ATTRIBUTES_COUNT);
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
         keys.emplace_back(redisMgr_pfx);
         keys.emplace_back(peer.peer_addr);
 
@@ -115,6 +178,7 @@ void MsgBusImpl_redis::update_unicastPrefix(obj_bgp_peer &peer, std::vector<obj_
 
             case UNICAST_PREFIX_ACTION_ADD:
             {
+<<<<<<< HEAD
                 addFieldValues.emplace_back(std::make_pair("origin", attr->origin));
                 addFieldValues.emplace_back(std::make_pair("as_path", attr->as_path));
                 addFieldValues.emplace_back(std::make_pair("as_path_count", std::to_string(attr->as_path_count)));
@@ -125,6 +189,18 @@ void MsgBusImpl_redis::update_unicastPrefix(obj_bgp_peer &peer, std::vector<obj_
                 addFieldValues.emplace_back(std::make_pair("ext_community_list", attr->ext_community_list));
                 addFieldValues.emplace_back(std::make_pair("large_community_list", attr->large_community_list));
                 addFieldValues.emplace_back(std::make_pair("originator_id", attr->originator_id));
+=======
+                addFieldValues.emplace_back(make_pair("origin", attr->origin));
+                addFieldValues.emplace_back(make_pair("as_path", attr->as_path));
+                addFieldValues.emplace_back(make_pair("as_path_count", to_string(attr->as_path_count)));
+                addFieldValues.emplace_back(make_pair("origin_as", to_string(attr->origin_as)));
+                addFieldValues.emplace_back(make_pair("next_hop", attr->next_hop));
+                addFieldValues.emplace_back(make_pair("local_pref", to_string(attr->local_pref)));
+                addFieldValues.emplace_back(make_pair("community_list", attr->community_list));
+                addFieldValues.emplace_back(make_pair("ext_community_list", attr->ext_community_list));
+                addFieldValues.emplace_back(make_pair("large_community_list", attr->large_community_list));
+                addFieldValues.emplace_back(make_pair("originator_id", attr->originator_id));
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
 
                 if(peer.isAdjIn)
                 {
@@ -139,7 +215,11 @@ void MsgBusImpl_redis::update_unicastPrefix(obj_bgp_peer &peer, std::vector<obj_
 
             case UNICAST_PREFIX_ACTION_DEL:
             {
+<<<<<<< HEAD
                 std::string com_key;
+=======
+                string com_key;
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
                 if(peer.isAdjIn)
                 {
                     com_key = BMP_TABLE_RIB_IN;
@@ -174,9 +254,12 @@ void MsgBusImpl_redis::update_Collector(obj_collector &c_object, collector_actio
  * Abstract method Implementation - See MsgBusInterface.hpp for details
  */
 void MsgBusImpl_redis::update_Router(obj_router &r_object, router_action_code code) {
+<<<<<<< HEAD
     if (code == ROUTER_ACTION_INIT) {
         redisMgr_.ResetAllTables();
     }
+=======
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
 }
 
 
@@ -190,7 +273,11 @@ void MsgBusImpl_redis::update_baseAttribute(obj_bgp_peer &peer, obj_path_attr &a
 /**
  * Abstract method Implementation - See MsgBusInterface.hpp for details
  */
+<<<<<<< HEAD
 void MsgBusImpl_redis::update_L3Vpn(obj_bgp_peer &peer, std::vector<obj_vpn> &vpn,
+=======
+void MsgBusImpl_redis::update_L3Vpn(obj_bgp_peer &peer, vector<obj_vpn> &vpn,
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
                                 obj_path_attr *attr, vpn_action_code code) {
 
 }
@@ -199,7 +286,11 @@ void MsgBusImpl_redis::update_L3Vpn(obj_bgp_peer &peer, std::vector<obj_vpn> &vp
 /**
  * Abstract method Implementation - See MsgBusInterface.hpp for details
  */
+<<<<<<< HEAD
 void MsgBusImpl_redis::update_eVPN(obj_bgp_peer &peer, std::vector<obj_evpn> &vpn,
+=======
+void MsgBusImpl_redis::update_eVPN(obj_bgp_peer &peer, vector<obj_evpn> &vpn,
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
                               obj_path_attr *attr, vpn_action_code code) {
 }
 

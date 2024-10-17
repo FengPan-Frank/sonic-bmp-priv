@@ -12,18 +12,29 @@
 
 #include <sonic-swss-common/common/dbconnector.h>
 #include <sonic-swss-common/common/table.h>
+<<<<<<< HEAD
 #include <sonic-swss-common/common/select.h>
 #include <sonic-swss-common/common/selectableevent.h>
 #include <sonic-swss-common/common/subscriberstatetable.h>
+=======
+#include <sonic-swss-common/common/configdb.h>
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
 
 #include <string>
 #include <list>
 #include <map>
+<<<<<<< HEAD
+=======
+#include <mutex>
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
 #include <unordered_set>
 #include <functional>
 #include <vector>
 #include "Logger.h"
+<<<<<<< HEAD
 #include "BMPListener.h"
+=======
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
 
 
 /**
@@ -39,7 +50,11 @@
 /**
  * BMP_CFG_TABLE_* defines config db tables.
  */
+<<<<<<< HEAD
 #define BMP_CFG_DB_NAME            "CONFIG_DB"
+=======
+#define BMP_CFG_TABLE_NAME         "BMP"
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
 #define BMP_CFG_TABLE_NEI          "bgp_neighbor_table"
 #define BMP_CFG_TABLE_RIB_IN       "bgp-rib-in-table"
 #define BMP_CFG_TABLE_RIB_OUT      "bgp-rib-out-table"
@@ -70,6 +85,7 @@ public:
      * \param [in] logPtr     logger pointer
      * \param [in] client     client pointer
      ***********************************************************************/
+<<<<<<< HEAD
     void Setup(Logger *logPtr, BMPListener::ClientInfo *client);
 
     /**
@@ -78,6 +94,10 @@ public:
     * \param [in] N/A
     */
     void DisconnectBMP();
+=======
+    void Setup(Logger *logPtr);
+
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
 
     /**
     * ExitRedisManager
@@ -110,6 +130,7 @@ public:
     bool WriteBMPTable(const std::string& table, const std::vector<std::string>& keys, const std::vector<swss::FieldValueTuple> fieldValues);
 
     /**
+<<<<<<< HEAD
     * SubscriberWorker, thread main for redis table subcriber.
     *
     * \param [in] table       table name to be subscribed.
@@ -122,6 +143,13 @@ public:
      * \param [in] tables     table names to be subscribed.
      */
     bool ReadBMPTable(const std::vector<std::string>& tables);
+=======
+     * InitBMPConfig, read config_db for table enablement setting.
+     *
+     * \param [in] N/A
+     */
+    bool InitBMPConfig();
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
 
     /**
      * RemoveEntityFromBMPTable
@@ -132,6 +160,7 @@ public:
     bool RemoveEntityFromBMPTable(const std::vector<std::string>& keys);
 
     /**
+<<<<<<< HEAD
      * Enable specific Table
      *
      * \param [in] table    Reference to table name
@@ -147,6 +176,8 @@ public:
 
 
     /**
+=======
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
      * Get Key separator for deletion
      *
      * \param [in] N/A
@@ -158,9 +189,13 @@ private:
     std::string separator_;
     Logger *logger;
     std::unordered_set<std::string> enabledTables_;
+<<<<<<< HEAD
     std::vector<std::shared_ptr<std::thread>> threadList_;
     bool exit_;
     BMPListener::ClientInfo *client_;
+=======
+    bool exit_;
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
 };
 
 

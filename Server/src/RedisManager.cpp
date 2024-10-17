@@ -24,12 +24,15 @@ RedisManager::RedisManager() : stateDb_(BMP_DB_NAME, 0, true) {
  * Constructor for class
  ***********************************************************************/
 RedisManager::~RedisManager() {
+<<<<<<< HEAD
     if (!exit_) {
         exit_ = true;
         for (auto& threadPtr : threadList_) {
             threadPtr->join();
         }
     }
+=======
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
 }
 
 
@@ -38,9 +41,14 @@ RedisManager::~RedisManager() {
  *
  * \param [in] logPtr     logger pointer
  ***********************************************************************/
+<<<<<<< HEAD
 void RedisManager::Setup(Logger *logPtr, BMPListener::ClientInfo *client) {
     logger = logPtr;
     client_ = client;
+=======
+void RedisManager::Setup(Logger *logPtr) {
+    logger = logPtr;
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
 }
 
 
@@ -95,6 +103,7 @@ bool RedisManager::RemoveEntityFromBMPTable(const std::vector<std::string>& keys
     return true;
 }
 
+<<<<<<< HEAD
 /**
  * DisconnectBMP
  *
@@ -105,6 +114,8 @@ void RedisManager::DisconnectBMP() {
     close(client_->c_sock);
     client_->c_sock = 0;
 }
+=======
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
 
 /**
  * ExitRedisManager
@@ -113,6 +124,7 @@ void RedisManager::DisconnectBMP() {
  */
 void RedisManager::ExitRedisManager() {
     exit_ = true;
+<<<<<<< HEAD
     for (auto& threadPtr : threadList_) {
         threadPtr->join();
     }
@@ -179,12 +191,31 @@ bool RedisManager::ReadBMPTable(const std::vector<std::string>& tables) {
         std::shared_ptr<std::thread> threadPtr = std::make_shared<std::thread>(
             std::bind(&RedisManager::SubscriberWorker, this, table));
         threadList_.push_back(threadPtr);
+=======
+}
+
+
+/**
+ * InitBMPConfig, read config_db for table enablement setting.
+ *
+ * \param [in] N/A
+ */
+bool RedisManager::InitBMPConfig() {
+    auto connector = swss::ConfigDBConnector_Native();
+    connector.connect(false);
+    auto items = connector.get_entry(BMP_CFG_TABLE_NAME, "table");
+    for (const auto& item : items) {
+        if (item.second == "true") {
+            enabledTables_.insert(item.first);
+        }
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
     }
     return true;
 }
 
 
 /**
+<<<<<<< HEAD
  * Enable specific Table
  *
  * \param [in] table    Reference to table name, like BGP_NEIGHBOR_TABLE/BGP_RIB_OUT_TABLE/BGP_RIB_IN_TABLE
@@ -206,6 +237,8 @@ bool RedisManager::DisableTable(const std::string & table) {
 
 
 /**
+=======
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
  * Reset ResetBMPTable, this will flush redis
  *
  * \param [in] table    Reference to table name BGP_NEIGHBOR_TABLE/BGP_RIB_OUT_TABLE/BGP_RIB_IN_TABLE
@@ -230,6 +263,10 @@ bool RedisManager::ResetBMPTable(const std::string & table) {
  */
 void RedisManager::ResetAllTables() {
     LOG_INFO("RedisManager ResetAllTables");
+<<<<<<< HEAD
+=======
+
+>>>>>>> dc7e920792ef4007f22ca05962ab0f74d620f5ec
     for (const auto& enabledTable : enabledTables_) {
         ResetBMPTable(enabledTable);
     }
