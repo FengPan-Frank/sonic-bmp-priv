@@ -101,6 +101,19 @@ jobs:
         popd
         popd
       displayName: 'Build original openbmp for sanity check'
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        source: specific
+        project: build
+        pipeline: 142
+        artifact: sonic-buildimage.vs
+        runVersion: 'latestFromBranch'
+        runBranch: 'refs/heads/$(BUILD_BRANCH)'
+        patterns: |
+            target/debs/bookworm/libyang*.deb
+            target/debs/bookworm/libnl*.deb
+            target/python-wheels/bookworm/sonic_yang_models*.whl
+      displayName: "Download bookworm debs"
 
     - script: |
         # LIBSWSSCOMMON
