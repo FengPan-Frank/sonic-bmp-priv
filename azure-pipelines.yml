@@ -80,8 +80,8 @@ jobs:
         mkdir build
         cd build
         cmake -DBUILD_SHARED_LIBS=OFF ..
-        # make
-        # sudo make install
+        make
+        sudo make install
         cd ../../
 
         sudo apt-get remove -y libcurl4-openssl-dev
