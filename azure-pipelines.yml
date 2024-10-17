@@ -145,9 +145,9 @@ jobs:
         sudo dpkg -i libswsscommon_1.0.0_amd64.deb
         sudo dpkg -i libswsscommon-dev_1.0.0_amd64.deb
         sudo dpkg -i python3-swsscommon_1.0.0_amd64.deb
-        sudo dpkg-query -L libswsscommon-dev  
-        sudo mkdir -p /usr/local/include/sonic-swss-common/common
-        sudo cp /usr/include/swss/*.h /usr/local/include/sonic-swss-common/common
+        #sudo dpkg-query -L libswsscommon-dev  
+        #sudo mkdir -p /usr/local/include/sonic-swss-common/common
+        #sudo cp /usr/include/swss/*.h /usr/local/include/sonic-swss-common/common
       workingDirectory: $(Pipeline.Workspace)/
       displayName: 'Install libswsscommon package'
 
@@ -158,11 +158,8 @@ jobs:
         pushd new_sonic_bmp
         git clone https://github.com/FengPan-Frank/sonic-bmp.git
         cd sonic-bmp
-        sudo cp /usr/lib/x86_64-linux-gnu/libhiredis.* /usr/local/lib
-        sudo ls /usr/local/lib
-        ldd /usr/local/lib/libswsscommon.a
-
-        git checkout $(Build.SourceBranchName)
+        git checkout fenpan_swsscommon
+        ls /usr/include/swss/
         mkdir build
         cd build
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_REDIS=ON ../  
