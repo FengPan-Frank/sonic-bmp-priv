@@ -47,21 +47,6 @@ parameters:
   type: string
   default: sonic-slave-bookworm
 
-<<<<<<< HEAD
-variables:
-  - name: BUILD_BRANCH
-    ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
-      value: $(Build.SourceBranchName)
-    ${{ else }}:
-      value: $(Build.SourceBranchName)
-
-  - name: CHECKOUT_BRANCH
-    ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
-      value: $(System.PullRequest.SourceBranch)
-    ${{ else }}:
-      value: $(Build.SourceBranchName)
-=======
->>>>>>> merge new azp
 
 schedules:
 - cron: "0 0 * * *"
@@ -77,7 +62,13 @@ jobs:
   pool:
     vmImage: 'ubuntu-20.04'
   container:
-    image: sonicdev-microsoft.azurecr.io:443/sonic-slave-bookworm:latest
+    image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:latest
+
+  steps:
+    - checkout: self
+      clean: true
+      submodules: recursive
+      displayName: 'Checkout code'
 
     - script: |
         sudo apt-get update
