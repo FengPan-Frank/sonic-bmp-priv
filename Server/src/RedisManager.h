@@ -10,9 +10,9 @@
 #ifndef REDISMANAGER_H_
 #define REDISMANAGER_H_
 
-//#include <sonic-swss-common/common/dbconnector.h>
-//#include <sonic-swss-common/common/table.h>
-//#include <sonic-swss-common/common/configdb.h>
+#include <sonic-swss-common/common/dbconnector.h>
+#include <sonic-swss-common/common/table.h>
+#include <sonic-swss-common/common/configdb.h>
 
 #include <string>
 #include <list>
