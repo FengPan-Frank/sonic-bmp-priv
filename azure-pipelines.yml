@@ -145,6 +145,8 @@ jobs:
         sudo dpkg -i libswsscommon_1.0.0_amd64.deb
         sudo dpkg -i libswsscommon-dev_1.0.0_amd64.deb
         sudo dpkg -i python3-swsscommon_1.0.0_amd64.deb
+        sudo dpkg-query -L libswsscommon-dev  
+
       workingDirectory: $(Pipeline.Workspace)/
       displayName: 'Install libswsscommon package'
 
