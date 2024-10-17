@@ -16,13 +16,13 @@
  */
 
 #include "BMPListener.h"
-//#include "MsgBusImpl_kafka.h"
+#ifndef REDIS_ENABLED
+#include "MsgBusImpl_kafka.h"
+#endif
 #include "MsgBusInterface.hpp"
 #include "client_thread.h"
 #include "openbmpd_version.h"
 #include "Config.h"
-#include <sonic-swss-common/common/dbconnector.h>
-#include <sonic-swss-common/common/table.h>
 
 #include <unistd.h>
 #include <fstream>
@@ -363,13 +363,47 @@ bool ReadCmdArgs(int argc, char **argv, Config &cfg) {
 /**
  * Collector Update Message
  *
+ * \param [in] cfg                   Pointer to config instance
+ * \param [in] cfg                   Reference to configuration
+ * \param [in] code                  reason code for the update
+ */
+#ifdef REDIS_ENABLED
+void collector_update_msg(Config &cfg,
+                          MsgBusInterface::collector_action_code code) {
+    MsgBusInterface::obj_collector oc;
+
+    snprintf(oc.admin_id, sizeof(oc.admin_id), "%s", cfg.admin_id);
+
+    oc.router_count = thr_list.size();
+
+    string router_ips;
+    for (int i=0; i < thr_list.size(); i++) {
+        //MsgBusInterface::hash_toStr(thr_list.at(i)->client.hash_id, hash_str);
+        if (router_ips.size() > 0)
+            router_ips.append(", ");
+
+        router_ips.append(thr_list.at(i)->client.c_ip);
+    }
+
+    snprintf(oc.routers, sizeof(oc.routers), "%s", router_ips.c_str());
+
+    timeval tv;
+    gettimeofday(&tv, NULL);
+    oc.timestamp_secs = tv.tv_sec;
+    oc.timestamp_us = tv.tv_usec;
+}
+#endif
+
+/**
+ * Collector Update Message
+ *
  * \param [in] kafka                 Pointer to kafka instance
  * \param [in] cfg                   Reference to configuration
  * \param [in] code                  reason code for the update
  */
-void collector_update_msg( Config &cfg,
+#ifndef REDIS_ENABLED
+void collector_update_msg(msgBus_kafka *kafka, Config &cfg,
                           MsgBusInterface::collector_action_code code) {
-
     MsgBusInterface::obj_collector oc;
 
     snprintf(oc.admin_id, sizeof(oc.admin_id), "%s", cfg.admin_id);
@@ -392,8 +426,9 @@ void collector_update_msg( Config &cfg,
     oc.timestamp_secs = tv.tv_sec;
     oc.timestamp_us = tv.tv_usec;
 
-   // kafka->update_Collector(oc, code);
+    kafka->update_Collector(oc, code);
 }
+#endif
 
 /**
  * Run Server loop
@@ -401,7 +436,9 @@ void collector_update_msg( Config &cfg,
  * \param [in]  cfg    Reference to the config options
  */
 void runServer(Config &cfg) {
-   // msgBus_kafka *kafka;
+#ifndef REDIS_ENABLED
+    msgBus_kafka *kafka;
+#endif
     int active_connections = 0;                 // Number of active connections/threads
     int concurrent_routers = 0;			// Number of concurrent routers
     time_t last_heartbeat_time = 0;
@@ -419,13 +456,19 @@ void runServer(Config &cfg) {
         memcpy(cfg.c_hash_id, hash_raw, 16);
         delete[] hash_raw;
 
+#ifndef REDIS_ENABLED
         // Kafka connection
-       // kafka = new msgBus_kafka(logger, &cfg, cfg.c_hash_id);
+        kafka = new msgBus_kafka(logger, &cfg, cfg.c_hash_id);
+#endif
 
         // allocate and start a new bmp server
         BMPListener *bmp_svr = new BMPListener(logger, &cfg);
 
-        collector_update_msg( cfg, MsgBusInterface::COLLECTOR_ACTION_STARTED);
+#ifndef REDIS_ENABLED
+        collector_update_msg(kafka, cfg, MsgBusInterface::COLLECTOR_ACTION_STARTED);
+#else
+        collector_update_msg(cfg, MsgBusInterface::COLLECTOR_ACTION_STARTED);
+#endif
         last_heartbeat_time = time(NULL);
 
         LOG_INFO("Ready. Waiting for connections");
@@ -451,9 +494,13 @@ void runServer(Config &cfg) {
                     delete thr_list.at(i);
                     thr_list.erase(thr_list.begin() + i);
 
-                    collector_update_msg( cfg,
+#ifndef REDIS_ENABLED
+                    collector_update_msg(kafka, cfg,
                                          MsgBusInterface::COLLECTOR_ACTION_CHANGE);
-
+#else
+                    collector_update_msg(cfg,
+                                         MsgBusInterface::COLLECTOR_ACTION_CHANGE);
+#endif
                 }
 
 		        else if (!thr_list.at(i)->baselineTimeout) {
@@ -520,9 +567,13 @@ void runServer(Config &cfg) {
                         // Free attribute
                         pthread_attr_destroy(&thr_attr);
 
-                        collector_update_msg( cfg,
+#ifndef REDIS_ENABLED
+                        collector_update_msg(kafka, cfg,
                                              MsgBusInterface::COLLECTOR_ACTION_CHANGE);
-
+#else
+                        collector_update_msg(cfg,
+                                             MsgBusInterface::COLLECTOR_ACTION_CHANGE);
+#endif
                         last_heartbeat_time = time(NULL);
 
                     } else {
@@ -530,7 +581,11 @@ void runServer(Config &cfg) {
 
                         // Send heartbeat if needed
                         if ( (time(NULL) - last_heartbeat_time) >= cfg.heartbeat_interval) {
-                            collector_update_msg( cfg, MsgBusInterface::COLLECTOR_ACTION_HEARTBEAT);
+#ifndef REDIS_ENABLED
+                            collector_update_msg(kafka, cfg, MsgBusInterface::COLLECTOR_ACTION_HEARTBEAT);
+#else
+                            collector_update_msg(cfg, MsgBusInterface::COLLECTOR_ACTION_HEARTBEAT);
+#endif
                             last_heartbeat_time = time(NULL);
                         }
 
@@ -544,9 +599,12 @@ void runServer(Config &cfg) {
 	        }
 	    }
 
-        collector_update_msg( cfg, MsgBusInterface::COLLECTOR_ACTION_STOPPED);
-
-
+#ifndef REDIS_ENABLED
+        collector_update_msg(kafka, cfg, MsgBusInterface::COLLECTOR_ACTION_STOPPED);
+        delete kafka;
+#else
+        collector_update_msg(cfg, MsgBusInterface::COLLECTOR_ACTION_STOPPED);
+#endif
     } catch (char const *str) {
         LOG_WARN(str);
     }
@@ -557,7 +615,7 @@ void runServer(Config &cfg) {
  */
 int main(int argc, char **argv) {
     Config cfg;
-    swss::DBConnector stateDb("STATE_DB", 0, true);
+
     // Process the command line args
     if (ReadCmdArgs(argc, argv, cfg)) {
         return 1;

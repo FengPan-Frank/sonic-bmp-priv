@@ -7,7 +7,13 @@ else()
     set(SSL_LIBS )
 endif()
 
+# cmake -DENABLE_REDIS=ON
+option(ENABLE_REDIS "Enable Redis population" OFF)
 
+# Add the compile flag
+if(ENABLE_REDIS)
+    add_definitions(-DREDIS_ENABLED)
+endif()
 
 # Find and set the env for the mysql c++ connector
 set(HINT_ROOT_DIR
@@ -33,22 +39,57 @@ find_library(LIBYAML_CPP_LIBRARY
         lib64
         lib)
 
+if (NOT ENABLE_REDIS)
+    find_path(LIBRDKAFKA_INCLUDE_DIR
+            librdkafka/rdkafkacpp.h
+            HINTS
+            ${HINT_ROOT_DIR}
+            PATH_SUFFIXES
+            include)
 
-find_path(LIBSWSSCOMMON_INCLUDE_DIR
-        sonic-swss-common/common/dbconnector.h
-        HINTS
-        ${HINT_ROOT_DIR}
-        PATH_SUFFIXES
-        include)
+    find_library(LIBRDKAFKA_LIBRARY
+            NAMES
+            librdkafka.a rdkafka
+            HINTS
+            ${HINT_ROOT_DIR}
+            PATH_SUFFIXES
+            lib64
+            lib)
 
-find_library(LIBSWSSCOMMON_LIBRARY
-        NAMES
-        libswsscommon.a libswsscommon
-        HINTS
-        ${HINT_ROOT_DIR}
-        PATH_SUFFIXES
-        lib64
-        lib)
+    find_library(LIBRDKAFKA_CPP_LIBRARY
+            NAMES
+            librdkafka++.a rdkafka++
+            HINTS
+            ${HINT_ROOT_DIR}
+            PATH_SUFFIXES
+            lib64
+            lib)
+else ()
+    find_path(LIBSWSSCOMMON_INCLUDE_DIR
+            sonic-swss-common/common/dbconnector.h
+            HINTS
+            ${HINT_ROOT_DIR}
+            PATH_SUFFIXES
+            include)
+
+    find_library(LIBHIREDIS_LIBRARY
+            NAMES
+            hiredis
+            HINTS
+            ${HINT_ROOT_DIR}
+            PATH_SUFFIXES
+            lib64
+            lib)
+
+    find_library(LIBSWSSCOMMON_LIBRARY
+            NAMES
+            swsscommon
+            HINTS
+            ${HINT_ROOT_DIR}
+            PATH_SUFFIXES
+            lib64
+            lib)
+endif ()
 
 find_library(LIBRT_LIBRARY
         NAMES
@@ -59,13 +100,24 @@ find_library(LIBRT_LIBRARY
         lib64
         lib)
 
-
-if (NOT LIBSWSSCOMMON_INCLUDE_DIR OR NOT LIBSWSSCOMMON_LIBRARY)
-	Message (FATAL_ERROR "swsscommon was not found, cannot proceed.  Visit https://github.com/sonic-net/sonic-swss-common for details on how to install it.")
-#else ()
-#	Message ("lib = " ${LIBSWSSCOMMON_LIBRARY})
+if (ENABLE_REDIS)
+    if (NOT LIBHIREDIS_LIBRARY)
+        Message (FATAL_ERROR "Libhiredis was not found, cannot proceed.  Visit https://github.com/redis/hiredis for details on how to install it.")
+    else ()
+        Message ("lib = " ${LIBHIREDIS_LIBRARY})
+    endif()
+    if (NOT LIBSWSSCOMMON_INCLUDE_DIR OR NOT LIBSWSSCOMMON_LIBRARY)
+        Message (FATAL_ERROR "swsscommon was not found, cannot proceed.  Visit https://github.com/sonic-net/sonic-swss-common for details on how to install it.")
+    else ()
+        Message ("lib = " ${LIBSWSSCOMMON_LIBRARY})
+    endif()
+else ()
+    if (NOT LIBRDKAFKA_INCLUDE_DIR OR NOT LIBRDKAFKA_LIBRARY OR NOT LIBRDKAFKA_CPP_LIBRARY)
+        Message (FATAL_ERROR "Librdkafka was not found, cannot proceed.  Visit https://github.com/edenhill/librdkafka for details on how to install it.")
+    else ()
+        Message ("lib = " ${LIBRDKAFKA_LIBRARY})
+    endif()
 endif()
-
 
 if (NOT LIBYAML_CPP_INCLUDE_DIR OR NOT LIBYAML_CPP_LIBRARY)
     Message (FATAL_ERROR "Libyaml-cpp was not found, cannot proceed.  Visit https://github.com/jbeder/yaml-cpp for install details.")
@@ -75,10 +127,13 @@ if (NOT LIBRT_LIBRARY AND NOT MACOSX)
     Message (FATAL_ERROR "librt was not found, cannot proceed.")
 endif()
 
-
-
 # Update the include dir
-include_directories(${LIBSWSSCOMMON_INCLUDE_DIR} ${LIBYAML_CPP_INCLUDE_DIR} src/ src/bmp src/bgp src/bgp/linkstate )
+if (NOT ENABLE_REDIS)
+    include_directories(${LIBRDKAFKA_INCLUDE_DIR} ${LIBYAML_CPP_INCLUDE_DIR} src/ src/bmp src/bgp src/bgp/linkstate src/kafka)
+else()
+    include_directories(${LIBSWSSCOMMON_INCLUDE_DIR} ${LIBYAML_CPP_INCLUDE_DIR} src/ src/bmp src/bgp src/bgp/linkstate src/redis)
+endif()
+#link_directories(${LIBRDKAFKA_LIBRARY})
 
 
 # Define the source files to compile
@@ -104,6 +159,17 @@ set (SRC_FILES
     src/bgp/linkstate/MPLinkStateAttr.cpp
     )
 
+# Add specific files used
+if (NOT ENABLE_REDIS)
+    # Add Kafka-specific source files
+    file(GLOB KAFKA_FILES src/kafka/MsgBusImpl_kafka.cpp src/kafka/KafkaEventCallback.cpp src/kafka/KafkaDeliveryReportCallback.cpp src/kafka/KafkaTopicSelector.cpp src/kafka/KafkaPeerPartitionerCallback.cpp)
+    list(APPEND SRC_FILES ${KAFKA_FILES})
+else ()
+    # Add Redis-specific source files
+    file(GLOB REDIS_FILES src/RedisManager.cpp src/redis/MsgBusImpl_redis.cpp)
+    list(APPEND SRC_FILES ${REDIS_FILES})
+endif ()
+
 # Disable warnings
 add_definitions ("-Wno-unused-result")
 
@@ -124,16 +190,20 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 # Set the libs to link
-set (LIBS pthread ${LIBYAML_CPP_LIBRARY} ${LIBSWSSCOMMON_LIBRARY} z ${SSL_LIBS} dl)
+if (NOT ENABLE_REDIS)
+    set (LIBS pthread ${LIBYAML_CPP_LIBRARY} ${LIBRDKAFKA_CPP_LIBRARY} ${LIBRDKAFKA_LIBRARY} z ${SSL_LIBS} dl)
+else ()
+    set (LIBS pthread ${LIBYAML_CPP_LIBRARY} z ${SSL_LIBS} dl)
+endif ()
 
 # Set the binary
 add_executable (openbmpd ${SRC_FILES})
 
 # Link the binary
-target_link_libraries (openbmpd ${LIBS})
+target_link_libraries (openbmpd ${LIBS} ${LIBSWSSCOMMON_LIBRARY})
 
 if (LIBRT_LIBRARY)
-    target_link_libraries(openbmpd ${LIBRT_LIBRARY})
+    target_link_libraries(openbmpd ${LIBRT_LIBRARY} ${LIBSWSSCOMMON_LIBRARY})
 endif()
 
 # Install the binary and configs
