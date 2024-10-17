@@ -80,16 +80,16 @@ jobs:
         mkdir build
         cd build
         cmake -DBUILD_SHARED_LIBS=OFF ..
-        make
-        sudo make install
+        # make
+        # sudo make install
         cd ../../
 
         sudo apt-get remove -y libcurl4-openssl-dev
         git clone https://github.com/edenhill/librdkafka.git
         pushd librdkafka
-        ./configure
-        make
-        sudo make install
+        #./configure
+        #make
+        #sudo make install
         popd
       displayName: 'Install dependencies'
 
@@ -101,8 +101,8 @@ jobs:
         git checkout fenpan_swsscommon
         mkdir build
         pushd build
-        cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../
-        make
+        #cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../
+        #make
         popd
         popd
         popd
@@ -156,6 +156,7 @@ jobs:
 
 
     - script: |
+        sudo dpkg -l|grep swsscommon
         mkdir new_sonic_bmp
         pushd new_sonic_bmp
         git clone https://github.com/FengPan-Frank/sonic-bmp.git
