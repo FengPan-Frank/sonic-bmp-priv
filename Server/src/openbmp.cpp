@@ -363,6 +363,40 @@ bool ReadCmdArgs(int argc, char **argv, Config &cfg) {
 /**
  * Collector Update Message
  *
+ * \param [in] cfg                   Pointer to config instance
+ * \param [in] cfg                   Reference to configuration
+ * \param [in] code                  reason code for the update
+ */
+#ifdef REDIS_ENABLED
+void collector_update_msg(Config &cfg,
+                          MsgBusInterface::collector_action_code code) {
+    MsgBusInterface::obj_collector oc;
+
+    snprintf(oc.admin_id, sizeof(oc.admin_id), "%s", cfg.admin_id);
+
+    oc.router_count = thr_list.size();
+
+    string router_ips;
+    for (int i=0; i < thr_list.size(); i++) {
+        //MsgBusInterface::hash_toStr(thr_list.at(i)->client.hash_id, hash_str);
+        if (router_ips.size() > 0)
+            router_ips.append(", ");
+
+        router_ips.append(thr_list.at(i)->client.c_ip);
+    }
+
+    snprintf(oc.routers, sizeof(oc.routers), "%s", router_ips.c_str());
+
+    timeval tv;
+    gettimeofday(&tv, NULL);
+    oc.timestamp_secs = tv.tv_sec;
+    oc.timestamp_us = tv.tv_usec;
+}
+#endif
+
+/**
+ * Collector Update Message
+ *
  * \param [in] kafka                 Pointer to kafka instance
  * \param [in] cfg                   Reference to configuration
  * \param [in] code                  reason code for the update
@@ -370,10 +404,6 @@ bool ReadCmdArgs(int argc, char **argv, Config &cfg) {
 #ifndef REDIS_ENABLED
 void collector_update_msg(msgBus_kafka *kafka, Config &cfg,
                           MsgBusInterface::collector_action_code code) {
-#else
-void collector_update_msg(Config &cfg,
-                          MsgBusInterface::collector_action_code code) {
-#endif
     MsgBusInterface::obj_collector oc;
 
     snprintf(oc.admin_id, sizeof(oc.admin_id), "%s", cfg.admin_id);
@@ -396,10 +426,9 @@ void collector_update_msg(Config &cfg,
     oc.timestamp_secs = tv.tv_sec;
     oc.timestamp_us = tv.tv_usec;
 
-#ifndef REDIS_ENABLED
     kafka->update_Collector(oc, code);
-#endif
 }
+#endif
 
 /**
  * Run Server loop
@@ -428,8 +457,8 @@ void runServer(Config &cfg) {
         delete[] hash_raw;
 
 #ifndef REDIS_ENABLED
--        // Kafka connection
--       kafka = new msgBus_kafka(logger, &cfg, cfg.c_hash_id);
+        // Kafka connection
+        kafka = new msgBus_kafka(logger, &cfg, cfg.c_hash_id);
 #endif
 
         // allocate and start a new bmp server
