@@ -31,6 +31,12 @@ variables:
     ${{ else }}:
       value: $(Build.SourceBranchName)
 
+  - name: CHECKOUT_BRANCH
+    ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
+      value: $(System.PullRequest.SourceBranch)
+    ${{ else }}:
+      value: $(Build.SourceBranchName)
+
 schedules:
 - cron: "0 0 * * *"
   displayName: Daily
@@ -92,7 +98,7 @@ jobs:
         pushd original_bmp
         git clone https://github.com/FengPan-Frank/sonic-bmp.git
         pushd sonic-bmp
-        git checkout $(BUILD_BRANCH)
+        git checkout $(CHECKOUT_BRANCH)
         mkdir build
         pushd build
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../
@@ -157,7 +163,7 @@ jobs:
         pushd new_sonic_bmp
         git clone https://github.com/FengPan-Frank/sonic-bmp.git
         cd sonic-bmp
-        git checkout $(BUILD_BRANCH)
+        git checkout $(CHECKOUT_BRANCH)
         mkdir build
         cd build
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_REDIS=ON ../  
