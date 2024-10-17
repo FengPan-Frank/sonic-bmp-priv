@@ -47,6 +47,7 @@ parameters:
   type: string
   default: sonic-slave-bookworm
 
+<<<<<<< HEAD
 variables:
   - name: BUILD_BRANCH
     ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
@@ -59,6 +60,8 @@ variables:
       value: $(System.PullRequest.SourceBranch)
     ${{ else }}:
       value: $(Build.SourceBranchName)
+=======
+>>>>>>> merge new azp
 
 schedules:
 - cron: "0 0 * * *"
