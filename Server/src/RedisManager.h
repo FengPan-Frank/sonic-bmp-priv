@@ -10,9 +10,9 @@
 #ifndef REDISMANAGER_H_
 #define REDISMANAGER_H_
 
-#include <common/dbconnector.h>
-#include <common/table.h>
-#include <common/configdb.h>
+#include <swss/dbconnector.h>
+#include <swss/table.h>
+#include <swss/configdb.h>
 
 #include <string>
 #include <list>
