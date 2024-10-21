@@ -65,11 +65,6 @@ jobs:
     image: sonicdev-microsoft.azurecr.io:443/${{ parameters.sonic_slave }}:latest
 
   steps:
-    - checkout: self
-      clean: true
-      submodules: recursive
-      displayName: 'Checkout code'
-
     - script: |
         sudo apt-get update
         sudo apt-get install -qq -y \
@@ -109,12 +104,13 @@ jobs:
         popd
       displayName: 'Install openbmp dependencies'
 
+    - checkout: self
+      clean: true
+      submodules: recursive
+      displayName: 'Checkout code'
+
     - script: |
-        mkdir original_bmp
-        pushd original_bmp
-        git clone https://github.com/FengPan-Frank/sonic-bmp.git
         pushd sonic-bmp
-        git checkout $(CHECKOUT_BRANCH)
         mkdir build
         pushd build
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../
@@ -173,14 +169,7 @@ jobs:
 
 
     - script: |
-        sudo dpkg -l|grep swsscommon
-        mkdir new_sonic_bmp
-        pushd new_sonic_bmp
-        git clone https://github.com/FengPan-Frank/sonic-bmp.git
-        cd sonic-bmp
-        git checkout  $(CHECKOUT_BRANCH)
-        mkdir build
-        cd build
+        make clean
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_REDIS=ON ../
         make
 
