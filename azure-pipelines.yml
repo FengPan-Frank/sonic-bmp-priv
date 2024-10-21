@@ -109,17 +109,6 @@ jobs:
       submodules: recursive
       displayName: 'Checkout code'
 
-    - script: |
-        pushd sonic-bmp
-        mkdir build
-        pushd build
-        cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../
-        make
-        popd
-        popd
-        popd
-      displayName: 'Build original openbmp for sanity check'
-
     - task: DownloadPipelineArtifact@2
       inputs:
         source: specific
@@ -167,12 +156,21 @@ jobs:
       workingDirectory: $(Pipeline.Workspace)/
       displayName: 'Install libswsscommon package'
 
+    - script: |
+        pushd sonic-bmp
+        git branch
+        git branch -v
+        mkdir build
+        pushd build
+        cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../
+        make
+        popd
+      displayName: 'Build original openbmp for sanity check'
 
     - script: |
         make clean
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_REDIS=ON ../
         make
-
       displayName: 'Build sonic-bmp'
 
     - publish: $(System.DefaultWorkingDirectory)/
