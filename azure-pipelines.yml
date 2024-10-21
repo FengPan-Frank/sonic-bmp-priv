@@ -157,7 +157,7 @@ jobs:
       displayName: 'Install libswsscommon package'
 
     - script: |
-        pushd sonic-bmp
+        ls -alh
         git branch
         git branch -v
         mkdir build
@@ -168,7 +168,9 @@ jobs:
       displayName: 'Build original openbmp for sanity check'
 
     - script: |
-        make clean
+        rm -rf build/
+        mkdir build
+        pushd build
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_REDIS=ON ../
         make
       displayName: 'Build sonic-bmp'
