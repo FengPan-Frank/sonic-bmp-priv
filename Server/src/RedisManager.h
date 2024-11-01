@@ -21,7 +21,9 @@
 #include <unordered_set>
 #include <functional>
 #include <vector>
+#include <sstream>
 #include "Logger.h"
+#include "Config.h"
 
 
 /**
@@ -38,6 +40,7 @@
  * BMP_CFG_TABLE_* defines config db tables.
  */
 #define BMP_CFG_TABLE_NAME         "BMP"
+#define BMP_CFG_TABLE_KEY          "table"
 #define BMP_CFG_TABLE_NEI          "bgp_neighbor_table"
 #define BMP_CFG_TABLE_RIB_IN       "bgp-rib-in-table"
 #define BMP_CFG_TABLE_RIB_OUT      "bgp-rib-out-table"
@@ -66,9 +69,9 @@ public:
      * Setup logger for this class
      *
      * \param [in] logPtr     logger pointer
-     * \param [in] client     client pointer
+     * \param [in] cfgPtr     config pointer
      ***********************************************************************/
-    void Setup(Logger *logPtr);
+    void Setup(Logger *logPtr, Config *cfgPtr);
 
 
     /**
@@ -90,7 +93,7 @@ public:
      *
      * \param [in] table    Reference to table name BGP_NEIGHBOR_TABLE/BGP_RIB_OUT_TABLE/BGP_RIB_IN_TABLE
      */
-    bool ResetBMPTable(const std::string & table);
+    void ResetBMPTable(const std::string & table);
 
     /**
      * WriteBMPTable
@@ -124,7 +127,7 @@ public:
     std::string GetKeySeparator();
 
 private:
-    swss::DBConnector stateDb_;
+    std::shared_ptr<swss::DBConnector> stateDb_;
     std::string separator_;
     Logger *logger;
     std::unordered_set<std::string> enabledTables_;

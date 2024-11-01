@@ -159,7 +159,6 @@ jobs:
     - script: |
         ls -alh
         git branch
-        git branch -v
         mkdir build
         pushd build
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../

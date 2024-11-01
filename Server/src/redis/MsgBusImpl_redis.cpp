@@ -26,7 +26,7 @@ using namespace std;
 MsgBusImpl_redis::MsgBusImpl_redis(Logger *logPtr, Config *cfg, BMPListener::ClientInfo *client) {
     logger = logPtr;
     this->cfg = cfg;
-    redisMgr_.Setup(logPtr);
+    redisMgr_.Setup(logPtr, cfg);
     redisMgr_.InitBMPConfig();
 }
 
@@ -78,6 +78,12 @@ void MsgBusImpl_redis::update_Peer(obj_bgp_peer &peer, obj_peer_up_event *up, ob
         }
         break;
     }
+    for (const auto& fieldValue : fieldValues) {
+        const std::string& field = std::get<0>(fieldValue);
+        const std::string& value = std::get<1>(fieldValue);
+        DEBUG("MsgBusImpl_redis update_Peer field = %s, value = %s", field.c_str(), value.c_str());
+    }
+
     redisMgr_.WriteBMPTable(BMP_TABLE_NEI, keys, fieldValues);
 }
 
@@ -90,13 +96,14 @@ void MsgBusImpl_redis::update_unicastPrefix(obj_bgp_peer &peer, vector<obj_rib> 
     if (attr == NULL)
         return;
 
-    // Loop through the vector array of rib entries
-    vector<swss::FieldValueTuple> addFieldValues;
-    addFieldValues.reserve(MAX_ATTRIBUTES_COUNT);
     vector<string> del_keys;
     string neigh = peer.peer_addr;
 
     for (size_t i = 0; i < rib.size(); i++) {
+        // Loop through the vector array of rib entries
+        vector<swss::FieldValueTuple> addFieldValues;
+        addFieldValues.reserve(MAX_ATTRIBUTES_COUNT);
+
         // rib table schema as BGP_RIB_OUT_TABLE|192.181.168.0/25|10.0.0.59
         vector<string> keys;
         string redisMgr_pfx = rib[i].prefix;
@@ -121,6 +128,11 @@ void MsgBusImpl_redis::update_unicastPrefix(obj_bgp_peer &peer, vector<obj_rib> 
                 addFieldValues.emplace_back(make_pair("large_community_list", attr->large_community_list));
                 addFieldValues.emplace_back(make_pair("originator_id", attr->originator_id));
 
+                for (const auto& fieldValue : addFieldValues) {
+                    const std::string& field = std::get<0>(fieldValue);
+                    const std::string& value = std::get<1>(fieldValue);
+                    DEBUG("MsgBusImpl_redis update_unicastPrefix field = %s, value = %s", field.c_str(), value.c_str());
+                }
                 if(peer.isAdjIn)
                 {
                     redisMgr_.WriteBMPTable(BMP_TABLE_RIB_IN, keys, addFieldValues);
