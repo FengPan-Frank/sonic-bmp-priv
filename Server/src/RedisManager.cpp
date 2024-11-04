@@ -13,10 +13,7 @@
 /*********************************************************************//**
  * Constructor for class
  ***********************************************************************/
-RedisManager::RedisManager() : stateDb_(BMP_DB_NAME, 0, true) {
-    swss::SonicDBConfig::initialize();
-    swss::SonicDBConfig::initializeGlobalConfig();
-    separator_ = swss::SonicDBConfig::getSeparator(BMP_DB_NAME);
+RedisManager::RedisManager() {
     exit_ = false;
 }
 
@@ -28,12 +25,24 @@ RedisManager::~RedisManager() {
 
 
 /*********************************************************************
- * Setup logger for this class
+ * Setup for this class
  *
  * \param [in] logPtr     logger pointer
+ * \param [in] cfgPtr     config pointer
  ***********************************************************************/
-void RedisManager::Setup(Logger *logPtr) {
+void RedisManager::Setup(Logger *logPtr, Config *cfgPtr) {
     logger = logPtr;
+    if (!cfgPtr->redis_multiAsic) {
+        if (!swss::SonicDBConfig::isInit()) {
+            swss::SonicDBConfig::initialize();
+        }
+    } else {
+        if (!swss::SonicDBConfig::isGlobalInit()) {
+            swss::SonicDBConfig::initializeGlobalConfig();
+        }
+    }
+    stateDb_ =  std::make_shared<swss::DBConnector>(BMP_DB_NAME, 0, false);
+    separator_ = swss::SonicDBConfig::getSeparator(BMP_DB_NAME);
 }
 
 
@@ -61,18 +70,17 @@ bool RedisManager::WriteBMPTable(const std::string& table, const std::vector<std
         LOG_INFO("RedisManager %s is disabled", table.c_str());
         return false;
     }
-
-    swss::Table stateBMPTable(&stateDb_, table);
-    std::string fullKey;
+    std::unique_ptr<swss::Table> stateBMPTable = std::make_unique<swss::Table>(stateDb_.get(), table);
+    std::ostringstream oss;
     for (const auto& key : keys) {
-        fullKey += key;
-        fullKey += separator_;
+        oss << key << separator_;
     }
-    fullKey.erase(fullKey.size() - 1);
+    std::string fullKey = oss.str();
+    fullKey.pop_back();
 
-    LOG_INFO("RedisManager WriteBMPTable key = %s", fullKey.c_str());
+    DEBUG("RedisManager WriteBMPTable key = %s", fullKey.c_str());
 
-    stateBMPTable.set(fullKey, fieldValues);
+    stateBMPTable->set(fullKey, fieldValues);
     return true;
 }
 
@@ -84,7 +92,10 @@ bool RedisManager::WriteBMPTable(const std::string& table, const std::vector<std
  */
 bool RedisManager::RemoveEntityFromBMPTable(const std::vector<std::string>& keys) {
 
-    stateDb_.del(keys);
+    for (const auto& key : keys) {
+        DEBUG("RedisManager RemoveEntityFromBMPTable key = %s", key.c_str());
+    }
+    stateDb_->del(keys);
     return true;
 }
 
@@ -105,10 +116,12 @@ void RedisManager::ExitRedisManager() {
  * \param [in] N/A
  */
 bool RedisManager::InitBMPConfig() {
-    auto connector = swss::ConfigDBConnector_Native();
-    connector.connect(false);
-    auto items = connector.get_entry(BMP_CFG_TABLE_NAME, "table");
-    for (const auto& item : items) {
+    std::shared_ptr<swss::DBConnector> cfgDb =
+        std::make_shared<swss::DBConnector>("CONFIG_DB", 0, false);
+    std::unique_ptr<swss::Table> cfgTable = std::make_unique<swss::Table>(cfgDb.get(), BMP_CFG_TABLE_NAME);
+    std::vector<swss::FieldValueTuple> fvt;
+    cfgTable->get(BMP_CFG_TABLE_KEY, fvt);
+    for (const auto& item : fvt) {
         if (item.second == "true") {
             enabledTables_.insert(item.first);
         }
@@ -122,15 +135,13 @@ bool RedisManager::InitBMPConfig() {
  *
  * \param [in] table    Reference to table name BGP_NEIGHBOR_TABLE/BGP_RIB_OUT_TABLE/BGP_RIB_IN_TABLE
  */
-bool RedisManager::ResetBMPTable(const std::string & table) {
+void RedisManager::ResetBMPTable(const std::string & table) {
 
     LOG_INFO("RedisManager ResetBMPTable %s", table.c_str());
-    swss::Table stateBMPTable(&stateDb_, table);
+    std::unique_ptr<swss::Table> stateBMPTable = std::make_unique<swss::Table>(stateDb_.get(), table);
     std::vector<std::string> keys;
-    stateBMPTable.getKeys(keys);
-    stateDb_.del(keys);
-
-    return true;
+    stateBMPTable->getKeys(keys);
+    stateDb_->del(keys);
 }
 
 
