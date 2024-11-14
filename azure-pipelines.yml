@@ -162,7 +162,7 @@ jobs:
         mkdir build
         pushd build
         cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr ../
-        make
+        #make
         popd
       displayName: 'Build original openbmp for sanity check'
 
@@ -174,6 +174,12 @@ jobs:
         make
       displayName: 'Build sonic-bmp'
 
+    - script: |
+        set -ex
+        pwd
+        ls -l
+        dpkg-buildpackage -rfakeroot -us -uc -b -j$(nproc) && cp ../*.deb $(Build.ArtifactStagingDirectory)/
+      displayName: "Build Debian Package"
 
     - publish: $(System.DefaultWorkingDirectory)/
       artifact: sonic-bmp.amd64.ubuntu20_04
